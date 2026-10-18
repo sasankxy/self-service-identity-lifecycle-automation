@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sign in — IdentityOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+  <link rel="stylesheet" href="responsive.css" />
+</head>
+
+<body class="auth-body">
+  <main class="auth-shell">
+    <section class="auth-aside" aria-hidden="true">
+      <div class="brand-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      </div>
+      <h1>IdentityOS</h1>
+      <p>Enterprise identity lifecycle automation, access governance and audit — in one console.</p>
+      <ul>
+        <li>Joiner · Mover · Leaver orchestration</li>
+        <li>Approval workflows &amp; SoD governance</li>
+        <li>Immutable audit trail</li>
+      </ul>
+    </section>
+
+    <section class="auth-card card">
+      <div class="auth-mobile-brand" aria-hidden="true">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
+        <strong>IdentityOS</strong>
+      </div>
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab active" role="tab" id="tab-signin" data-view="signin">Sign in</button>
+        <button class="auth-tab" role="tab" id="tab-signup" data-view="signup">Create account</button>
+      </div>
+
+      <div id="auth-banner" class="auth-banner" role="status" hidden></div>
+
+      <form id="signin-form" class="auth-form" novalidate autocomplete="on">
+        <div class="form-group">
+          <label for="si-email">Corporate email</label>
+          <input id="si-email" name="email" type="email" autocomplete="username" required />
+          <span class="field-error" data-for="email"></span>
+        </div>
+        <div class="form-group">
+          <label for="si-password">Password</label>
+          <input id="si-password" name="password" type="password" autocomplete="current-password" required />
+          <span class="field-error" data-for="password"></span>
+        </div>
+        <button class="btn-primary auth-submit" type="submit">Sign in</button>
+      </form>
+
+      <form id="signup-form" class="auth-form" novalidate autocomplete="on" hidden>
+        <div class="form-group">
+          <label for="su-name">Full name</label>
+          <input id="su-name" name="full_name" type="text" autocomplete="name" required />
+          <span class="field-error" data-for="full_name"></span>
+        </div>
+        <div class="form-group">
+          <label for="su-email">Corporate email</label>
+          <input id="su-email" name="email" type="email" autocomplete="email" required />
+          <span class="field-error" data-for="email"></span>
+        </div>
+        <div class="form-group">
+          <label for="su-password">Password</label>
+          <input id="su-password" name="password" type="password" autocomplete="new-password" required />
+          <ul class="pw-rules" id="pw-rules"></ul>
+          <span class="field-error" data-for="password"></span>
+        </div>
+        <div class="form-group">
+          <label for="su-confirm">Confirm password</label>
+          <input id="su-confirm" name="confirm_password" type="password" autocomplete="new-password" required />
+          <span class="field-error" data-for="confirm_password"></span>
+        </div>
+        <span class="field-error" data-for="_"></span>
+        <button class="btn-primary auth-submit" type="submit">Request access</button>
+        <p class="auth-note">New accounts are reviewed by an administrator before they can sign in.</p>
+      </form>
+    </section>
+  </main>
+  <script src="auth.js"></script>
+  <script src="login.js"></script>
+</body>
+
+</html>

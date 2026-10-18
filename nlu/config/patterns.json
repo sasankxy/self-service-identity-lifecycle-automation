@@ -1,0 +1,488 @@
+{
+  "actions": {
+    "MOVE": [
+      "move to",
+      "moves to",
+      "moved to",
+      "moving to",
+      "transfer to",
+      "transfers to",
+      "transferred to",
+      "transferring to",
+      "relocate to",
+      "relocated to",
+      "move",
+      "moves",
+      "moved",
+      "moving",
+      "transfer",
+      "transfers",
+      "transferred",
+      "transferring",
+      "relocate",
+      "relocates",
+      "relocated",
+      "relocating",
+      "reassign",
+      "reassigns",
+      "reassigned",
+      "reassigning"
+    ],
+    "JOIN": [
+      "join",
+      "joins",
+      "joined",
+      "joining",
+      "onboard",
+      "onboards",
+      "onboarded",
+      "onboarding"
+    ],
+    "LEAVE": [
+      "leave",
+      "leaves",
+      "leaving",
+      "left",
+      "resign",
+      "resigns",
+      "resigned",
+      "resigning",
+      "terminate",
+      "terminates",
+      "terminated",
+      "terminating",
+      "offboard",
+      "offboards",
+      "offboarded",
+      "offboarding"
+    ],
+    "REQUEST_ACCESS": [
+      "request access",
+      "requesting access",
+      "need access",
+      "needs access",
+      "get access",
+      "give access",
+      "grant access",
+      "grant",
+      "grants",
+      "granted",
+      "granting",
+      "provision",
+      "provisions",
+      "provisioned",
+      "provisioning",
+      "give",
+      "gives"
+    ],
+    "REVOKE_ACCESS": [
+      "revoke",
+      "revokes",
+      "revoked",
+      "revoking",
+      "remove access",
+      "removing access",
+      "disable access",
+      "deprovision",
+      "deprovisions",
+      "deprovisioned"
+    ],
+    "CHECK_ACCESS": [
+      "check access",
+      "have access",
+      "has access"
+    ]
+  },
+  "action_context_blocklist": [
+    "\\b(?:annual|sick|maternity|paternity|parental|medical|casual|compensatory|on)\\s+leave\\b",
+    "\\bleave\\s+(?:of\\s+absence|request|balance|policy|days?)\\b"
+  ],
+  "temporal_patterns": [
+    {
+      "name": "end_of_period",
+      "regex": "\\b(?:(?:at|by|on)\\s+)?(?:the\\s+)?end\\s+of\\s+(?:the\\s+|this\\s+|next\\s+)?(?:month|week|quarter|year)\\b"
+    },
+    {
+      "name": "relative_day",
+      "regex": "\\b(?:today|tomorrow|yesterday|tonight)\\b"
+    },
+    {
+      "name": "weekday",
+      "regex": "\\b(?:(?:this|next|last|coming)\\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b"
+    },
+    {
+      "name": "relative_period",
+      "regex": "\\b(?:next|this|last|following)\\s+(?:week|month|quarter|year|weekend)\\b"
+    },
+    {
+      "name": "in_n_units",
+      "regex": "\\bin\\s+(?:\\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|a\\s+couple\\s+of|a\\s+few)\\s+(?:days?|weeks?|months?)\\b"
+    },
+    {
+      "name": "day_month",
+      "regex": "\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\b(?:,?\\s+\\d{4})?"
+    },
+    {
+      "name": "month_day",
+      "regex": "\\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?\\b(?:,?\\s+\\d{4})?"
+    },
+    {
+      "name": "iso",
+      "regex": "\\b\\d{4}-\\d{2}-\\d{2}\\b"
+    },
+    {
+      "name": "slash",
+      "regex": "\\b\\d{1,2}/\\d{1,2}/\\d{2,4}\\b"
+    }
+  ],
+  "employee_id_patterns": [
+    {
+      "regex": "\\b(?:EMP|EID)[-_]?\\d{3,8}\\b",
+      "group": 0
+    },
+    {
+      "regex": "\\bE[-_]?\\d{4,8}\\b",
+      "group": 0
+    },
+    {
+      "regex": "\\b(?:employee|emp)\\s*(?:id|number|no\\.?)\\s*[:#]?\\s*(\\d{3,8})\\b",
+      "group": 1
+    }
+  ],
+  "reason_regex": "\\b(?:because(?:\\s+of)?|due\\s+to|owing\\s+to|as\\s+part\\s+of|on\\s+account\\s+of)\\b[^.,;!?\\n]*",
+  "intent_cues": {
+    "JOINER": [
+      {
+        "regex": "\\bnew (?:hire|hires|joiner|joiners|employee|starter|joinee|team member)s?\\b",
+        "weight": 3.5
+      },
+      {
+        "regex": "\\bonboard\\w*",
+        "weight": 3
+      },
+      {
+        "regex": "\\bjoin(?:s|ed|ing)?\\b",
+        "weight": 2
+      },
+      {
+        "regex": "\\b(?:starts?|starting)\\s+(?:work(?:ing)?|on|at)\\b",
+        "weight": 1.5
+      },
+      {
+        "regex": "\\bwelcome\\b",
+        "weight": 1
+      },
+      {
+        "regex": "\\b(?:hire|hired|hiring|recruited)\\b",
+        "weight": 1.5
+      },
+      {
+        "regex": "\\bcreate\\s+(?:an?\\s+)?(?:account|identity|profile)\\b",
+        "weight": 2
+      }
+    ],
+    "MOVER": [
+      {
+        "regex": "\\b(?:transfer|transfers|transferred|transferring)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:relocate|relocates|relocated|relocating|reassign|reassigns|reassigned|reassigning)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\bmov(?:e|es|ed|ing)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:switch|switches|switched|switching|change|changes|changed|changing)\\s+(?:to\\s+)?(?:the\\s+|a\\s+|his\\s+|her\\s+|their\\s+|my\\s+)?(?:team|teams|department|departments|dept)\\b",
+        "weight": 2.5
+      }
+    ],
+    "LEAVER": [
+      {
+        "regex": "\\b(?:resign|resigns|resigned|resigning|resignation|offboard\\w*|quit|quits|quitting|retire|retires|retired|retiring|retirement|dismissed|laid off|let go)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\bterminat(?:e|es|ed|ing|ion)\\b(?!.{0,25}\\b(?:access|permissions?|accounts?)\\b)",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:leave|leaves|leaving|left)\\s+(?:the\\s+)?(?:company|organi[sz]ation|firm|business|us|job)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:last\\s+(?:working\\s+)?day|exit\\s+(?:date|process|formalities)|separation|departure)\\b",
+        "weight": 2.5
+      },
+      {
+        "regex": "\\b(?:will|is going to|are going to|about to|plans? to|going to)\\s+leave\\b",
+        "weight": 2
+      },
+      {
+        "regex": "\\b(?:leaving|leaves)\\b",
+        "weight": 1.5
+      }
+    ],
+    "ACCESS_REQUEST": [
+      {
+        "regex": "\\b(?:request|requests|requested|requesting|need|needs|needed|require|requires|required|want|wants|wanted|like|get|gets|give|gives|grant|grants|granted|granting|provision|provisions|provisioned|provisioning|enable|enables|assign|assigns|allow|allows|add)\\b.{0,35}?\\b(?:access|permissions?|privileges|rights)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:can|could|may|might)\\s+(?:i|we|he|she|they)\\s+(?:please\\s+)?have\\b.{0,25}\\baccess\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\baccess\\s+(?:to|for)\\b",
+        "weight": 1.5
+      },
+      {
+        "regex": "\\b(?:add|assign|put|make)\\b.{0,40}?\\b(?:to|as)\\b.{0,30}?\\b(?:role|group)\\b",
+        "weight": 3
+      }
+    ],
+    "ACCESS_REVOCATION": [
+      {
+        "regex": "\\brevok(?:e|es|ing)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\brevoked\\b",
+        "weight": 1.5
+      },
+      {
+        "regex": "\\b(?:remove|removes|removing|delete|deleting|disable|disables|disabling|deactivate|deactivating|suspend|suspending|cut\\s+off|take\\s+away|taking\\s+away|strip|withdraw|withdrawing|terminate|terminating|drop)\\b.{0,35}?\\b(?:access|permissions?|privileges|rights|entitlements?)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:deprovision\\w*|de-provision\\w*|unassign\\w*)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\bno\\s+longer\\s+(?:need|needs|require|requires)\\b",
+        "weight": 2.5
+      },
+      {
+        "regex": "\\b(?:remove|delete|drop|take)\\b.{0,40}?\\bfrom\\b.{0,30}?\\b(?:role|group)\\b",
+        "weight": 3
+      }
+    ],
+    "ACCESS_STATUS_QUERY": [
+      {
+        "regex": "\\b(?:do|does|did|am|is|are|has|have)\\b.{0,25}?\\b(?:have|has|got|retain|keep)\\b.{0,25}?\\baccess\\b",
+        "weight": 3,
+        "suppresses": [
+          "ACCESS_REQUEST",
+          "ACCESS_REVOCATION"
+        ]
+      },
+      {
+        "regex": "\\b(?:what|which)\\b.{0,25}?\\b(?:access|apps|applications|permissions|roles|systems|entitlements|privileges)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\b(?:check|verify|confirm|show|list|view|see|display|review)\\b.{0,30}?\\b(?:access|permissions|entitlements|roles|privileges)\\b",
+        "weight": 3
+      },
+      {
+        "regex": "\\bstatus\\b.{0,30}?\\b(?:access|request|permissions?|account)\\b|\\baccess\\s+status\\b",
+        "weight": 3.5,
+        "suppresses": [
+          "ACCESS_REQUEST",
+          "ACCESS_REVOCATION"
+        ]
+      },
+      {
+        "regex": "^(?:has|have|is|was|were|did|does)\\b.{0,50}?\\b(?:revoked|removed|granted|provisioned|approved|disabled|deleted)\\b",
+        "weight": 3,
+        "suppresses": [
+          "ACCESS_REQUEST",
+          "ACCESS_REVOCATION"
+        ]
+      },
+      {
+        "regex": "\\b(?:granted|provisioned|approved|revoked|removed|disabled)\\b.{0,10}\\?\\s*$",
+        "weight": 2.5
+      }
+    ]
+  },
+  "unsupported_cues": [
+    "\\b(?:reset|forgot|forgotten|change|unlock)\\b.{0,15}\\b(?:password|passcode|pin)\\b",
+    "\\bpassword\\b",
+    "\\b(?:annual|sick|maternity|paternity|parental|medical|casual|compensatory)\\s+leave\\b",
+    "\\bon\\s+leave\\b",
+    "\\bleave\\s+(?:of\\s+absence|request|balance|policy)\\b",
+    "\\b(?:salary|payroll|payslip|bonus|reimbursement|expense)\\b",
+    "\\b(?:weather|joke|meeting\\s+room|lunch|cafeteria|parking|laptop|hardware|printer)\\b"
+  ],
+  "negators": [
+    "not",
+    "no",
+    "never",
+    "don't",
+    "dont",
+    "doesn't",
+    "doesnt",
+    "didn't",
+    "didnt",
+    "cannot",
+    "can't",
+    "cant",
+    "won't",
+    "wont",
+    "shouldn't",
+    "shouldnt",
+    "mustn't",
+    "without",
+    "cancel",
+    "stop",
+    "avoid",
+    "neither",
+    "nor"
+  ],
+  "negation_window": 3,
+  "clause_break_words": [
+    "but",
+    "however",
+    "instead",
+    "although",
+    "though",
+    "yet"
+  ],
+  "typo_lexicon": [
+    "access",
+    "revoke",
+    "revoking",
+    "transfer",
+    "transferred",
+    "request",
+    "requesting",
+    "remove",
+    "removing",
+    "onboard",
+    "onboarding",
+    "offboard",
+    "offboarding",
+    "resign",
+    "resigning",
+    "terminate",
+    "terminated",
+    "relocate",
+    "provision",
+    "deprovision",
+    "disable",
+    "grant",
+    "granting",
+    "reassign",
+    "joining",
+    "moving",
+    "leaving",
+    "permissions",
+    "applications",
+    "status"
+  ],
+  "pronouns": {
+    "self": [
+      "me",
+      "my",
+      "myself",
+      "mine",
+      "i",
+      "i'm",
+      "i've",
+      "i'd",
+      "i'll",
+      "im"
+    ],
+    "third_person": [
+      "he",
+      "she",
+      "him",
+      "her",
+      "hers",
+      "they",
+      "them",
+      "himself",
+      "herself",
+      "themselves"
+    ]
+  },
+  "department_role_cues": {
+    "source": [
+      "from",
+      "leaving",
+      "leave",
+      "leaves",
+      "left"
+    ],
+    "target": [
+      "to",
+      "into",
+      "joining",
+      "join",
+      "joins",
+      "joined",
+      "for",
+      "onto"
+    ],
+    "neutral": [
+      "in",
+      "within",
+      "at"
+    ]
+  },
+  "determiners": [
+    "the",
+    "a",
+    "an",
+    "our",
+    "their",
+    "his",
+    "her",
+    "my",
+    "its",
+    "your"
+  ],
+  "fuzzy": {
+    "min_ratio": 0.84,
+    "min_length": 5,
+    "max_length_diff": 2,
+    "types": [
+      "DEPARTMENT",
+      "APPLICATION"
+    ],
+    "stoplist": [
+      "sales",
+      "legal",
+      "slack",
+      "admin",
+      "about",
+      "other",
+      "there",
+      "these",
+      "those",
+      "their",
+      "would",
+      "could",
+      "should",
+      "please",
+      "access",
+      "after",
+      "before",
+      "again",
+      "first",
+      "other",
+      "which",
+      "where"
+    ]
+  },
+  "intent_thresholds": {
+    "min_score": 1.5,
+    "conflict_ratio": 0.6,
+    "nb_min_probability": 0.7,
+    "nb_disagreement_probability": 0.85
+  },
+  "unknown_intent_question": "I couldn't tell what you want to do. Is this about onboarding someone, moving someone to another department, offboarding someone, or requesting, revoking or checking access?"
+}

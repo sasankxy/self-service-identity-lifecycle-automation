@@ -1,0 +1,167 @@
+{
+  "case_sensitive_aliases": [
+    "IT",
+    "HR",
+    "CS",
+    "DS",
+    "SNOW",
+    "GH"
+  ],
+  "DEPARTMENT": {
+    "Engineering": {
+      "aliases": [
+        "Eng",
+        "Software Engineering"
+      ]
+    },
+    "Finance": {
+      "aliases": [
+        "Fin"
+      ]
+    },
+    "Human Resources": {
+      "aliases": [
+        "HR",
+        "People Ops",
+        "People Operations"
+      ]
+    },
+    "Sales": {
+      "aliases": []
+    },
+    "Marketing": {
+      "aliases": [
+        "Mktg"
+      ]
+    },
+    "Legal": {
+      "aliases": []
+    },
+    "IT Support": {
+      "aliases": [
+        "IT",
+        "Helpdesk",
+        "Help Desk",
+        "IT Helpdesk"
+      ]
+    },
+    "Customer Support": {
+      "aliases": [
+        "Customer Service",
+        "CS"
+      ]
+    },
+    "Operations": {
+      "aliases": [
+        "Ops"
+      ]
+    },
+    "Procurement": {
+      "aliases": [
+        "Purchasing"
+      ]
+    },
+    "Data Science": {
+      "aliases": [
+        "DS",
+        "Data Analytics"
+      ]
+    }
+  },
+  "APPLICATION": {
+    "SAP": {
+      "aliases": [
+        "SAP ERP"
+      ]
+    },
+    "Salesforce": {
+      "aliases": [
+        "SFDC",
+        "Sales Force"
+      ]
+    },
+    "Jira": {
+      "aliases": []
+    },
+    "Confluence": {
+      "aliases": []
+    },
+    "GitHub": {
+      "aliases": [
+        "Git Hub",
+        "GH"
+      ]
+    },
+    "Workday": {
+      "aliases": []
+    },
+    "ServiceNow": {
+      "aliases": [
+        "Service Now",
+        "SNOW"
+      ]
+    },
+    "Slack": {
+      "aliases": []
+    },
+    "Microsoft Office 365": {
+      "aliases": [
+        "Office 365",
+        "O365",
+        "M365",
+        "Microsoft 365"
+      ]
+    },
+    "AWS Console": {
+      "aliases": [
+        "AWS",
+        "Amazon Web Services"
+      ]
+    },
+    "Tableau": {
+      "aliases": []
+    },
+    "VPN": {
+      "aliases": [
+        "Corporate VPN"
+      ]
+    }
+  },
+  "ACCESS_ROLE": {
+    "Administrator": {
+      "aliases": [
+        "admin"
+      ]
+    },
+    "Read-Only": {
+      "aliases": [
+        "read only",
+        "readonly",
+        "viewer"
+      ]
+    },
+    "Editor": {
+      "aliases": [
+        "contributor"
+      ]
+    },
+    "Approver": {
+      "aliases": []
+    },
+    "Super User": {
+      "aliases": [
+        "superuser",
+        "power user"
+      ]
+    },
+    "Developer": {
+      "aliases": []
+    },
+    "Finance Approver": {
+      "aliases": []
+    },
+    "Report Viewer": {
+      "aliases": []
+    }
+  }
+}

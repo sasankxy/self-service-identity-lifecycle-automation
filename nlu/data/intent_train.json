@@ -1,0 +1,3002 @@
+[
+ {
+  "text": "Priya is joining People Ops next Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Carlos Mendes is joining DS on Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Zoya is joining Customer Support 2026-11-30.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Kavya Reddy is joining Help Desk today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Olivia Hart is joining Markting at the end of the month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Anil is joining Data Analytics in 3 days.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Varun Shah is joining Ops today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Nisha Das is joining People Ops at the end of next month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Aditya Verma is joining Helpdesk on 15th December 2026.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Sneha into Operations.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Varun Shah into IT.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Anil into People Ops.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Maya Singh into Eng.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Tara into Legal.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire John Smith into Enginering.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Mohan Joshi into People Operations.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Pooja Desai into Mktg.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard the new hire Priya Nair into Enginering.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Ravi will join the Sales team at the end of the month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Shreya Ali will join the People Operations team tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Leela will join the Purchasing team next Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Rahul will join the Fin team today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Ananya Iyer will join the Mktg team 2026-11-30.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Nisha Das will join the Legal team 2026-11-30.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Tara will join the People Operations team on Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Sara Thomas will join the Global Mobility team tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New joiner Ananya Iyer will join the Finanse team tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Karan Mehra in CS, starting today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Rahul Sharma in People Ops, starting next Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Leela in Human Resources, starting next Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Nisha Das in Fin, starting at the end of next month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Kavya Reddy in IT, starting at the end of the month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Carlos Mendes in Engineering, starting on March 3.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Maya in Data Analytics, starting in two weeks.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Sanjay Gill in People Ops, starting today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard Varun in People Operations, starting in 3 days.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Arjun Mehta joins Markting and needs access to Airtable and Salesforse.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Dev Taylor joins Mktg and needs access to Jira and Workday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Nisha Das joins Software Engineering and needs access to Trello and Tableau.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Varun Shah joins IT Support and needs access to M365 and SAP.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Maya Singh joins Operations and needs access to GitHub and AWS Console.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire John Smith joins Security Operations and needs access to SAP ERP and Figma.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Anil joins Finanse and needs access to Jira and Figma.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Nisha joins DS and needs access to Workday and M365.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "New hire Maya joins Human Resources and needs access to GitHub and Salesforce.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Emily to Finance! Onboarding starts tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Rahul Sharma to Customer Service! Onboarding starts today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Sara Thomas to Helpdesk! Onboarding starts in two weeks.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Olivia Hart to Ops! Onboarding starts tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Meera to Product Design! Onboarding starts this Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Dev to DS! Onboarding starts on Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Rahul Sharma to Treasury! Onboarding starts tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Jasmine Park to HR! Onboarding starts in two weeks.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Welcome Mohan to Markting! Onboarding starts next Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee employee ID 55821 as a new hire in Engineering due to a change in role.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee EMP-7712 as a new hire in Human Resources because of a project reassignment.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee E-10293 as a new hire in Finanse because of a team restructure.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee employee ID 55821 as a new hire in Facilities because of a team restructure.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee EMP-7712 as a new hire in IT Support due to a promotion.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee E-10293 as a new hire in Enginering due to a promotion.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee EMP-7712 as a new hire in Treasury because of a team restructure.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee EMP-7712 as a new hire in Mktg because of a project reassignment.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onboard employee EMP4821 as a new hire in Helpdesk due to a change in role.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Aditya Verma will be joining the Marketing department 2026-11-30.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Deepak Rao will be joining the Finanse department this Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Varun will be joining the Data Analytics department next week.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Rahul will be joining the Treasury department on 20 November.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Neha Joshi will be joining the Markting department next week.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Priya Nair will be joining the Risk Management department at the end of next month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Li Wei will be joining the Helpdesk department at the end of next month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Emily Clark will be joining the Data Analytics department next Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Mohan will be joining the Platform Services department today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Finanse by Friday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Product Design at the end of next month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Finanse in two weeks.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Enginering 2026-11-30.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining HR on March 3.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining IT Helpdesk in 3 days.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Helpdesk on 20 November.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Eng 2026-11-30.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "I am joining Treasury next Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Move Li Wei from Eng to IT Helpdesk.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Vikram from Sales to Procurement.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Ravi from Helpdesk to Internal Audit.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Rahul Sharma from CS to DS.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Meera from DS to Internal Audit.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Maya from CS to Fin.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Sanjay Gill from Mktg to Ops.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Tara from IT Helpdesk to Markting.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move Maya Singh from Customer Support to Treasury.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Li Wei to Procurement on 15th December 2026.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Ananya to IT Support next Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Zoya to Help Desk next Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Pooja Desai to Customer Insights next week.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Peter Moore to People Operations on 15th December 2026.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Ravi to Global Mobility 2026-11-30.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Zoya Wilson to Internal Audit in two weeks.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Varun Shah to Software Engineering this Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Transfer Fatima Khan to Human Resources at the end of next month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Deepak Rao will move to Customer Insights from IT Support by Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Olivia Hart will move to Fin from Facilities on 20 November.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tara will move to Human Resources from Operations next Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Nisha Das will move to Customer Support from Sales by Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Anil will move to Mktg from Finance on 15th December 2026.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Pooja Desai will move to Customer Service from Finanse tomorrow.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Kiran will move to Internal Audit from Marketing at the end of next month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Ananya Iyer will move to Security Operations from IT Support at the end of next month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Dev Taylor will move to Human Resources from Ops tomorrow.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Irfan Sheikh out of Enginering and into Customer Support because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Sanjay Gill out of People Operations and into IT Helpdesk due to a promotion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Carlos Mendes out of IT Support and into Treasury due to a promotion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Karan Mehra out of Human Resources and into Risk Management because of a project reassignment.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Li Wei out of Mktg and into Enginering due to a change in role.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Mohan Joshi out of Sales and into Software Engineering because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Meera out of Help Desk and into Software Engineering due to a change in role.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Priya Nair out of Finanse and into Internal Audit as part of the annual reorganisation.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Please transfer Neha Joshi out of Markting and into Help Desk due to contract completion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Rahul is moving to Markting as part of the annual reorganisation.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Priya is moving to Internal Audit as part of the annual reorganisation.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tara is moving to Markting because of a project reassignment.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Maya Singh is moving to Eng because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Nisha is moving to Operations due to a change in role.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Priya Nair is moving to Customer Service due to contract completion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Meera Krishnan is moving to Operations because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Manoj Kumar is moving to Purchasing due to a promotion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Nisha is moving to CS because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP4821 from Enginering to Fin next week.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee employee ID 55821 from Engineering to IT Helpdesk next Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP-7712 from CS to Ops at the end of next month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP4821 from Data Science to Customer Support next Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP4821 from People Operations to Ops on March 3.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP-7712 from Internal Audit to Platform Services today.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP-7712 from Data Science to Engineering by Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee EMP4821 from DS to Security Operations by Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Move employee employee ID 55821 from Human Resources to Eng at the end of the month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Deepak Rao to the Customer Support team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Meera Krishnan to the IT Support team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Ravi to the CS team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Sneha Patil to the Data Analytics team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Leela Kulkarni to the Brand Studio team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Ananya to the Marketing team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Sara Thomas to the Engineering team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Dev to the Procurement team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I want to move Tara Brown to the Mktg team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Carlos Mendes has been transferred from the Finanse team to the IT team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Leela Kulkarni has been transferred from the Engineering team to the Finance team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Fatima Khan has been transferred from the Mktg team to the IT Support team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Karan has been transferred from the Human Resources team to the Eng team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Aditya Verma has been transferred from the Treasury team to the DS team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Neha Joshi has been transferred from the Engineering team to the Human Resources team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Sara Thomas has been transferred from the Eng team to the Legal team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Meera Krishnan has been transferred from the Markting team to the Data Analytics team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Maya has been transferred from the Operations team to the HR team.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to Procurement on March 3.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to Operations in 3 days.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to Global Mobility at the end of the month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to People Ops next Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to Sales in two weeks.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to Customer Support on 15th December 2026.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to IT Helpdesk on March 3.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to People Operations in two weeks.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "I am moving to Security Operations this Friday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Arjun from Markting to CS.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Arjun Mehta from Help Desk to Marketing.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Shreya from DS to Eng.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Fatima Khan from Data Science to CS.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Shreya Ali from Mktg to Finance.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Aditya Verma from Risk Management to IT Helpdesk.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Fatima Khan from Finance to Markting.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign Maya from Operations to People Operations.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Reassign John Smith from Eng to Product Design.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Kavya Reddy is leaving the company in two weeks.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Leela is leaving the company on March 3.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Kavya Reddy is leaving the company at the end of next month.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Mohan Joshi is leaving the company on Monday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Dev is leaving the company on 20 November.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Sneha Patil is leaving the company this Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Sanjay Gill is leaving the company this Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Deepak Rao is leaving the company today.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Tara Brown is leaving the company at the end of the month.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Ravi Rao tomorrow.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Ravi Rao by Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Maya Singh next Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Tara Brown this Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Zoya on Monday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard John today.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Shreya on 20 November.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Shreya Ali at the end of the month.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Rahul Sharma at the end of the month.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Aditya Verma from Customer Insights has resigned because of a project reassignment.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Meera Krishnan from Helpdesk has resigned due to a change in role.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Karan Mehra from HR has resigned due to contract completion.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Shreya Ali from Help Desk has resigned due to a promotion.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Mohan from Customer Support has resigned due to a change in role.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "John Smith from Human Resources has resigned as part of the annual reorganisation.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Li Wei from Global Mobility has resigned due to a change in role.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Zoya from Sales has resigned because she accepted another offer.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "John from Operations has resigned because of a project reassignment.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee EMP-7712 will leave the company by Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee EMP4821 will leave the company in 3 days.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee EMP-7712 will leave the company at the end of next month.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee E-10293 will leave the company today.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee EMP-7712 will leave the company 2026-11-30.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee E-10293 will leave the company in two weeks.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee EMP4821 will leave the company next week.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee E-10293 will leave the company next Monday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Employee EMP-7712 will leave the company next Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Shreya Ali in Purchasing in two weeks.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Ananya Iyer in Finanse in 3 days.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Vikram Singh in Customer Support next week.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Peter Moore in Platform Services by Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Tara in Human Resources this Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate John Smith in Human Resources by Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Arjun in IT Helpdesk next Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Deepak Rao in IT Helpdesk on 20 November.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Please terminate Ravi Rao in Procurement in 3 days.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is in 3 days, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is at the end of the month, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is on March 3, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is this Friday, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is on Monday, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is on 20 November, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is in two weeks, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is next Friday, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "My last day is by Friday, I am leaving the company.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Jasmine Park resigned and is leaving Help Desk.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Kiran resigned and is leaving Brand Studio.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Arjun Mehta resigned and is leaving Customer Service.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Karan Mehra resigned and is leaving IT.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Kiran Kumar resigned and is leaving Eng.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Arjun resigned and is leaving Global Mobility.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Arjun resigned and is leaving Customer Support.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Rohan Gupta resigned and is leaving Operations.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Varun resigned and is leaving Finanse.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Manoj Kumar from Markting due to a change in role.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Arjun from Markting due to a change in role.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Rahul Sharma from Helpdesk because of a team restructure.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Zoya from Security Operations as part of the annual reorganisation.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Arjun Mehta from IT Support due to contract completion.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Neha Joshi from Markting because of a project reassignment.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Sneha Patil from Ops because of a project reassignment.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Priya from IT due to a change in role.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Offboard Ravi Rao from Markting due to contract completion.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Give me access to AWS Console.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to Githb.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to AWS.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to Sales Force.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to Microsoft Office 365.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to SNOW.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to Confluence.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to Figma.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give me access to Microsoft 365.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Tableau due to a change in role.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Corporate VPN as part of the annual reorganisation.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Workday as part of the annual reorganisation.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Workday due to contract completion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Figma because of a project reassignment.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Githb due to a promotion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Microsoft Office 365 due to a promotion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Salesforce due to a promotion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I need access to Tableau due to contract completion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Salesforce for Aditya Verma.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Jira for Rahul Sharma.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Office 365 for Sneha Patil.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Airtable for Rohan Gupta.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Githb for Ananya.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Lucidchart for Rohan Gupta.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to Service Now for Leela Kulkarni.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to SAP for Ravi Rao.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Request access to GitHub for Vikram.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Arjun Mehta Finance Approver access to GH.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Varun Shah Super User access to Service Now.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Peter Moore Approver access to Workday.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Sneha readonly access to Service Now.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Kiran Kumar Read-Only access to Microsoft Office 365.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Zoya Wilson admin access to Salesforce.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Meera Krishnan superuser access to Postman.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Carlos Mendes Approver access to GH.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Please grant Meera contributor access to O365.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to O365 and ServiceNow?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to Sales Force and Zendesk?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to SNOW and Git Hub?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to ServiceNow and SAP?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to SAP ERP and SFDC?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to Confluence and Salesforce?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to Salesforse and Office 365?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to Jira and Githb?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Can I get access to SNOW and Corporate VPN?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Jasmine Park needs access to VPN on 20 November.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Rahul Sharma needs access to AWS Console tomorrow.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Emily Clark needs access to Jira at the end of the month.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Sneha needs access to Airtable next Friday.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "John Smith needs access to Microsoft 365 in 3 days.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Kiran needs access to Sales Force by Friday.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Aditya Verma needs access to Git Hub next Monday.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Sneha needs access to Salesforce next Friday.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Tara needs access to ServiceNow next Friday.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to Sales Force as Administrator.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to AWS Console as superuser.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to SNOW as superuser.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to Amazon Web Services as readonly.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to Service Now as read only.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to Jira as read only.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to GH as viewer.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to Airtable as power user.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "I would like to request access to Githb as superuser.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision admin access on SFDC for employee E-10293.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision Administrator access on Figma for employee EMP4821.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision Editor access on Salesforse for employee employee ID 55821.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision admin access on Workday for employee employee ID 55821.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision Approver access on Lucidchart for employee EMP-7712.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision viewer access on Git Hub for employee EMP-7712.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision readonly access on Sales Force for employee E-10293.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision Read-Only access on GH for employee EMP4821.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Provision readonly access on VPN for employee E-10293.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Anil access to Git Hub because she accepted another offer.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Kiran access to SFDC because of a team restructure.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Sneha Patil access to Airtable due to a promotion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Ravi Rao access to Salesforse due to contract completion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Olivia Hart access to Asana because of a team restructure.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Leela access to Corporate VPN because she accepted another offer.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Ananya Iyer access to AWS Console due to a change in role.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Tara Brown access to SFDC due to contract completion.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Give Ravi access to ServiceNow because she accepted another offer.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me admin access in Asana?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me viewer access in Office 365?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me superuser access in VPN?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me readonly access in Confluence?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me superuser access in SAP?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me Finance Approver access in Githb?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me admin access in SFDC?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me admin access in SAP ERP?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Could you grant me Approver access in Confluence?",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Revoke Vikram Singh's GH access in 3 days.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Priya's SFDC access this Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Dev's ServiceNow access this Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Shreya Ali's Tableau access on 20 November.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Pooja Desai's Office 365 access on Monday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Sneha Patil's Salesforse access next Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Arjun Mehta's Jira access next Monday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke John Smith's VPN access at the end of next month.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revoke Peter Moore's Git Hub access on 15th December 2026.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to SAP for Anil.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to SAP for Sneha Patil.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to Salesforse for Vikram Singh.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to GH for Anil Bose.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to Notion for Aditya Verma.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to GitHub for Ravi.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to Githb for Vikram.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to Office 365 for Emily Clark.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Remove access to Sales Force for Aditya Verma.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to SAP ERP.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to O365.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to GH.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to M365.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to Githb.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to AWS Console.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to AWS.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to Figma.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke my access to Jira.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to Confluence for employee E-10293 due to a promotion.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to ServiceNow for employee E-10293 due to a change in role.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to ServiceNow for employee employee ID 55821 due to a promotion.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to Salesforce for employee E-10293 due to a change in role.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to ServiceNow for employee employee ID 55821 because of a team restructure.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to Lucidchart for employee employee ID 55821 due to a promotion.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to Workday for employee EMP4821 because of a project reassignment.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to Microsoft Office 365 for employee employee ID 55821 due to a promotion.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Disable access to Service Now for employee EMP-7712 because of a team restructure.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Varun no longer needs Zendesk; revoke admin access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Kiran no longer needs Githb; revoke superuser access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Meera Krishnan no longer needs SNOW; revoke Finance Approver access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Manoj Kumar no longer needs M365; revoke Approver access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Ananya Iyer no longer needs VPN; revoke viewer access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Nisha Das no longer needs Git Hub; revoke power user access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Rohan Gupta no longer needs Sales Force; revoke viewer access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Shreya no longer needs GH; revoke power user access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Karan no longer needs M365; revoke admin access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Peter Moore from GitHub and Jira on Monday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Dev from Notion and Trello on Monday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Rahul Sharma from GitHub and Corporate VPN next Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Kiran from ServiceNow and GH today.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Priya Nair from Salesforse and SAP ERP in two weeks.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Arjun Mehta from Slack and SAP next Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Ravi from VPN and Githb on 15th December 2026.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Irfan Sheikh from SAP ERP and Asana at the end of the month.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Deprovision Ravi from Salesforse and Tableau on March 3.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Jira.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Office 365.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to SAP.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Postman.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Amazon Web Services.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Sales Force.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Tableau.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to ServiceNow.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "I no longer need access to Githb.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Read-Only role from Mohan on SFDC.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Editor role from Varun Shah on M365.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Report Viewer role from Tara Brown on Asana.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Super User role from Tara on Figma.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Finance Approver role from Shreya on SNOW.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Developer role from Emily Clark on Githb.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the Report Viewer role from Mohan on ServiceNow.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the contributor role from Carlos Mendes on Service Now.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Please revoke the read only role from Manoj Kumar on O365.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Does Meera have access to Microsoft 365?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Pooja Desai have access to AWS Console?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Deepak Rao have access to Githb?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Emily have access to Figma?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Aditya Verma have access to Githb?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Rahul have access to Jira?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Emily have access to Confluence?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Dev Taylor have access to Jira?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Does Manoj Kumar have access to Office 365?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Corporate VPN?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Amazon Web Services?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Microsoft Office 365?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Sales Force?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Trello?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Microsoft 365?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Tableau?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Workday?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do I have access to Confluence?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Karan Mehra have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Ravi Rao have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Sara Thomas have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Leela Kulkarni have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Mohan Joshi have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Maya have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Varun Shah have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Leela have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What access does Manoj Kumar have?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Pooja Desai on O365.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Sneha on Slack.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Fatima Khan on Workday.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Varun Shah on GitHub.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Varun Shah on Lucidchart.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Priya on Service Now.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Fatima Khan on Figma.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Karan on O365.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Check access for Shreya on SAP ERP.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Nisha Das's Corporate VPN access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Meera's ServiceNow access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Manoj Kumar's GH access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has John Smith's Corporate VPN access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Manoj Kumar's SNOW access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Jasmine Park's Salesforse access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Priya Nair's Microsoft Office 365 access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Sanjay Gill's GH access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Tara Brown's SNOW access been granted?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Meera's VPN access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Leela's Salesforce access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Nisha Das's SFDC access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Meera Krishnan's Notion access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Rohan Gupta's Slack access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Sneha Patil's M365 access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Varun's Asana access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Dev Taylor's AWS access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "What is the status of Anil's Jira access request?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Emily have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Ananya have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Li Wei have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Maya have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Varun Shah have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Varun have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Manoj Kumar have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Rahul Sharma have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Which applications does Anil Bose have access to?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Kavya Reddy has in SNOW.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Aditya Verma has in SNOW.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Shreya Ali has in Microsoft 365.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Zoya has in Microsoft 365.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Vikram Singh has in AWS Console.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Sanjay Gill has in M365.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles John has in Salesforse.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Li Wei has in SFDC.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Show me all roles Karan has in VPN.",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Do not revoke Shreya's access to Microsoft Office 365.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Tara's access to Workday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Kiran Kumar's access to Githb.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Kiran's access to Githb.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Dev Taylor's access to Githb.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Rahul Sharma's access to Jira.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Pooja Desai's access to Corporate VPN.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Meera Krishnan's access to SAP.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not revoke Priya Nair's access to O365.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to Amazon Web Services for Karan.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to Corporate VPN for Mohan Joshi.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to GH for Priya Nair.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to Githb for Anil Bose.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to Microsoft 365 for Zoya Wilson.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to Salesforse for Olivia Hart.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to Airtable for Leela Kulkarni.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to SFDC for Ananya.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Please don't remove access to AWS for Meera Krishnan.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Manoj Kumar contributor access to Git Hub.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Irfan Sheikh Developer access to Sales Force.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Sara Thomas readonly access to Lucidchart.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Maya admin access to SFDC.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Aditya Verma Administrator access to Workday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Carlos Mendes Approver access to GH.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Rahul read only access to ServiceNow.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Arjun power user access to Githb.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Never grant Emily Clark Finance Approver access to GitHub.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Pooja Desai is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Peter Moore is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "John is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Leela is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Carlos Mendes is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Rahul is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Shreya is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Shreya Ali is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Nisha Das is not leaving the company.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Emily Clark to Sales.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Irfan Sheikh to Customer Support.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Irfan Sheikh to IT.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Sanjay Gill to Customer Insights.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Leela to Facilities.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Ananya to IT Helpdesk.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Nisha Das to Data Analytics.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Varun Shah to Data Analytics.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Do not move Priya to Customer Insights.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Priya Nair on March 3.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Mohan Joshi on Monday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Jasmine Park on Monday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Nisha Das tomorrow.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Nisha next Friday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Rahul this Friday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Kiran 2026-11-30.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Ananya Iyer today.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "We are not onboarding Ananya Iyer on Monday.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Leela Kulkarni access to Salesforse.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Zoya Wilson access to Githb.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Meera Krishnan access to ServiceNow.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Tara access to SFDC.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Karan access to Microsoft Office 365.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give John access to Microsoft 365.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Rahul access to Office 365.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give John access to Tableau.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "Cancel the request, do not give Varun access to Notion.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to SFDC.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to ServiceNow.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to AWS.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to Salesforse.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to Trello.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to Githb.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to SNOW.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to Git Hub.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "No need to revoke my access to GitHub.",
+  "intent": "UNKNOWN",
+  "negated": true
+ },
+ {
+  "text": "What is the weather in Bengaluru today?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for VPN.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for Asana.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for M365.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for Service Now.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for Office 365.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for Airtable.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for SAP ERP.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for Salesforse.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Reset my password for Salesforce.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for on March 3.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for next Friday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for on Monday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for 2026-11-30.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for in two weeks.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for in 3 days.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for by Friday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for on 15th December 2026.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Book a meeting room for today.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop next week.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop at the end of next month.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop this Friday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop in two weeks.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop tomorrow.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop on Monday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop 2026-11-30.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop today.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "I need a new laptop by Friday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Nisha Das is on annual leave at the end of next month.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Ravi is on annual leave in 3 days.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Arjun is on annual leave in two weeks.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Dev is on annual leave 2026-11-30.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Irfan Sheikh is on annual leave tomorrow.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Rohan Gupta is on annual leave next Friday.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Sneha is on annual leave today.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Rahul is on annual leave tomorrow.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "John is on annual leave on March 3.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for John.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Arjun Mehta.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Meera Krishnan.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Nisha.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Priya Nair.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Ananya Iyer.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Mohan Joshi.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Leela Kulkarni.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Please update the salary for Tara.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Tell me a joke.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Hello there, thanks for your help.",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Customer Service team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Platform Services team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Facilities team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Help Desk team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Finance team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the People Ops team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Customer Support team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the HR team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "What does the Operations team do?",
+  "intent": "UNKNOWN"
+ },
+ {
+  "text": "Irfan Sheikh has been hired and will join Data Analytics.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Priya has been hired and will join Operations.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Shreya has been hired and will join IT.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Ananya has been hired and will join Software Engineering.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Ravi has been hired and will join IT Support.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Shreya has been hired and will join Customer Support.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Irfan Sheikh has been hired and will join Finance.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Arjun has been hired and will join Customer Support.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Ananya Iyer has been hired and will join Legal.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Dev to DS at the end of the month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Meera to Mktg tomorrow.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Zoya to Data Science on Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Mohan to IT at the end of next month.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Priya Nair to IT Helpdesk today.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Neha Joshi to Data Science next week.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Leela to Risk Management next week.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Deepak Rao to Legal on Monday.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Please onboard Shreya to Software Engineering on March 3.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Ravi Rao is a new hire, joining the Eng team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Meera Krishnan is a new hire, joining the Sales team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Anil is a new hire, joining the Helpdesk team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Nisha is a new hire, joining the Engineering team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Mohan Joshi is a new hire, joining the Purchasing team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "John is a new hire, joining the Treasury team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Varun is a new hire, joining the DS team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "John Smith is a new hire, joining the Finance team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Sanjay Gill is a new hire, joining the Data Analytics team.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Priya Nair gets transferred to Customer Support.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Fatima Khan gets transferred to Global Mobility.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Mohan gets transferred to Procurement.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Shreya gets transferred to Procurement.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Olivia Hart gets transferred to Legal.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Meera gets transferred to Finanse.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Kavya Reddy gets transferred to Legal.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Priya Nair gets transferred to Finance.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Sara Thomas gets transferred to Operations.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Meera Krishnan will be transferred from Legal to Ops.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Zoya will be transferred from HR to Markting.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Rahul will be transferred from DS to Eng.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Sara Thomas will be transferred from Software Engineering to People Ops.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Mohan will be transferred from Marketing to IT Helpdesk.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Arjun Mehta will be transferred from Ops to Security Operations.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Zoya will be transferred from Purchasing to Operations.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Mohan will be transferred from Finance to Engineering.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Kiran Kumar will be transferred from People Operations to Help Desk.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Peter Moore is moving from IT to Engineering next week.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Irfan Sheikh is moving from Purchasing to Helpdesk 2026-11-30.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Rohan Gupta is moving from Fin to Customer Service on Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Dev Taylor is moving from Platform Services to Mktg at the end of next month.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Rohan Gupta is moving from Help Desk to Customer Service tomorrow.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Anil Bose is moving from Marketing to Global Mobility in two weeks.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Aditya Verma is moving from Marketing to Enginering on Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Ravi Rao is moving from Software Engineering to Brand Studio on Monday.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Pooja Desai is moving from Procurement to Eng in 3 days.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Shreya Ali will be offboarded next Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Meera will be offboarded at the end of next month.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Rohan Gupta will be offboarded on 15th December 2026.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Fatima Khan will be offboarded 2026-11-30.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Ravi will be offboarded in two weeks.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Arjun will be offboarded today.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Nisha will be offboarded in 3 days.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "John Smith will be offboarded on March 3.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Anil Bose will be offboarded by Friday.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Leela has resigned from DS.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Sanjay Gill has resigned from People Ops.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Kiran Kumar has resigned from IT Support.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Priya Nair has resigned from Ops.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Maya has resigned from Ops.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Vikram has resigned from Finanse.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Ananya has resigned from Human Resources.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Carlos Mendes has resigned from IT Helpdesk.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Rahul Sharma has resigned from CS.",
+  "intent": "LEAVER"
+ },
+ {
+  "text": "Ananya Iyer will need access to SNOW.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Rahul Sharma will need access to Git Hub.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Emily will need access to Salesforce.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Varun will need access to GH.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Ravi will need access to GH.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Meera Krishnan will need access to Microsoft Office 365.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Zoya Wilson will need access to VPN.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Rahul will need access to Airtable.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Irfan Sheikh will need access to Service Now.",
+  "intent": "ACCESS_REQUEST"
+ },
+ {
+  "text": "Has Zoya got access to GitHub?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Zoya got access to Salesforse?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Anil got access to Amazon Web Services?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Carlos Mendes got access to M365?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Rohan Gupta got access to SNOW?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Zoya Wilson got access to Service Now?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Sneha Patil got access to Asana?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Dev Taylor got access to Office 365?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Has Rahul got access to AWS Console?",
+  "intent": "ACCESS_STATUS_QUERY"
+ },
+ {
+  "text": "Vikram has left, so revoke their GitHub access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Karan has left, so revoke their SAP access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Aditya Verma has left, so revoke their Git Hub access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Emily has left, so revoke their Sales Force access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Anil Bose has left, so revoke their GitHub access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Leela Kulkarni has left, so revoke their Figma access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Leela Kulkarni has left, so revoke their Lucidchart access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Arjun Mehta has left, so revoke their SAP access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Dev has left, so revoke their Postman access.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Nisha Das's Corporate VPN acess next week.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Deepak Rao's Githb acess by Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Irfan Sheikh's Sales Force acess at the end of next month.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Varun Shah's GH acess next Monday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Arjun Mehta's Lucidchart acess on Monday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Leela Kulkarni's Workday acess next Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Varun Shah's Salesforse acess next Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Varun's M365 acess at the end of the month.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Revke Shreya Ali's Office 365 acess this Friday.",
+  "intent": "ACCESS_REVOCATION"
+ },
+ {
+  "text": "Tranfer Mohan to IT due to a promotion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Ravi to People Ops because of a project reassignment.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Ravi to Product Design due to a promotion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Kavya Reddy to IT Helpdesk because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Vikram to Data Science because of a project reassignment.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Irfan Sheikh to Customer Support due to a change in role.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Fatima Khan to Markting due to contract completion.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Ravi Rao to Markting because of a team restructure.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Tranfer Mohan to Finance because she accepted another offer.",
+  "intent": "MOVER"
+ },
+ {
+  "text": "Onbaord Ananya Iyer into Operations.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Li Wei into HR.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Dev Taylor into Markting.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Shreya into Data Analytics.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Mohan into Finance.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Varun Shah into Data Analytics.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Nisha into Marketing.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Peter Moore into Fin.",
+  "intent": "JOINER"
+ },
+ {
+  "text": "Onbaord Maya Singh into Procurement.",
+  "intent": "JOINER"
+ }
+]

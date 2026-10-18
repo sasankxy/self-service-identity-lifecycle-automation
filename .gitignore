@@ -3,3 +3,6 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+.env
+venv
+.pytest_cache/

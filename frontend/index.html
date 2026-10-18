@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>IdentityOS — Enterprise Identity & Access Governance</title>
+  <meta name="description" content="Enterprise IAM lifecycle automation platform: Joiner, Mover, Leaver orchestration, risk scoring, SoD governance, and immutable audit logs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+  <link rel="stylesheet" href="responsive.css" />
+</head>
+<body class="auth-pending">
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Enterprise Navigation">
+    <div class="sidebar__brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">IdentityOS</span>
+        <span class="brand-tag">Enterprise IAM</span>
+      </div>
+    </div>
+
+    <nav class="sidebar__nav">
+      <div class="nav-section-label">OVERVIEW</div>
+      <button class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/>
+          <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/>
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-page="ai-chat" id="nav-ai-chat">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+        </svg>
+        <span>AI Assistant</span>
+      </button>
+
+      <div class="nav-section-label">LIFECYCLE MANAGEMENT</div>
+      <button class="nav-item" data-page="users" id="nav-users">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+        </svg>
+        <span>Identities</span>
+      </button>
+      <button class="nav-item" data-page="approvals" id="nav-approvals">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+        <span>Approvals</span>
+        <span class="nav-badge" id="appr-badge" hidden>0</span>
+      </button>
+
+      <div class="nav-section-label">SECURITY & GOVERNANCE</div>
+      <button class="nav-item" data-page="risk" id="nav-risk">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        <span>Risk Analytics</span>
+      </button>
+      <button class="nav-item" data-page="audit" id="nav-audit">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+        </svg>
+        <span>Audit Logs</span>
+      </button>
+      <button class="nav-item" data-page="governance" id="nav-governance">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span>Governance</span>
+      </button>
+
+      <div class="nav-section-label">ADMINISTRATION</div>
+      <button class="nav-item" data-page="platform-users" id="nav-platform-users" hidden>
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+        </svg>
+        <span>Platform Users</span>
+        <span class="nav-badge nav-badge--pending" id="pu-badge" hidden>0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">··</div>
+        <div class="user-info">
+          <span class="user-name" id="user-name">Loading…</span>
+          <span class="user-role" id="user-role"></span>
+        </div>
+        <button class="icon-btn" id="logout-btn" aria-label="Sign out" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h6a1 1 0 110 2H5v12h5a1 1 0 110 2H4a1 1 0 01-1-1V3zm10.293 3.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L14.586 11H8a1 1 0 110-2h6.586l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="main" id="main-content">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="topbar__left">
+        <div class="breadcrumb" id="breadcrumb">IdentityOS / Dashboard</div>
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+      </div>
+      <div class="topbar__right">
+        <div class="system-status-badge" id="sys-status">
+          <span class="status-dot-green" id="sys-dot"></span>
+          <span id="sys-text">Checking…</span>
+        </div>
+        <button class="icon-btn search-toggle" id="search-toggle" type="button" aria-label="Search" aria-controls="global-search" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+        </button>
+        <div class="search-bar">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+          </svg>
+          <input type="search" placeholder="Search identities, requests, logs..." aria-label="Search" id="global-search" />
+        </div>
+        <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle Classic Light / Dark Slate">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="theme-icon">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="notif-btn" aria-label="Notifications" title="Notifications">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+          </svg>
+          <span class="notif-dot" id="notif-dot" aria-hidden="true" hidden></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- PAGE: DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-card__top"><span class="kpi-label">Total Identities</span><span class="kpi-badge kpi-badge--neutral">Active</span></div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-footer"><span class="kpi-delta" id="kpi-total-delta"></span><span class="kpi-subtext" id="kpi-total-sub"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__top"><span class="kpi-label">Provisioning Success</span><span class="kpi-badge kpi-badge--neutral" id="kpi-prov-badge">—</span></div>
+          <div class="kpi-value" id="kpi-prov">—</div>
+          <div class="kpi-footer"><span class="kpi-delta" id="kpi-prov-delta"></span><span class="kpi-subtext" id="kpi-prov-sub"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__top"><span class="kpi-label">Pending Approvals</span><span class="kpi-badge kpi-badge--warning">Action Required</span></div>
+          <div class="kpi-value" id="kpi-pending">—</div>
+          <div class="kpi-footer"><span class="kpi-delta" id="kpi-pending-delta"></span><span class="kpi-subtext" id="kpi-pending-sub"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card__top"><span class="kpi-label">High-Risk Accounts</span><span class="kpi-badge kpi-badge--danger">Critical</span></div>
+          <div class="kpi-value" id="kpi-high">—</div>
+          <div class="kpi-footer"><span class="kpi-delta" id="kpi-high-delta"></span><span class="kpi-subtext" id="kpi-high-sub"></span></div>
+        </div>
+      </div>
+
+      <!-- CHARTS SECTION -->
+      <div class="charts-row">
+        <div class="card chart-card chart-card--wide">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Identity Lifecycle Trends</h2>
+              <p class="card-subtitle">Monthly Joiner, Mover, and Leaver volume</p>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-dot" style="--c:#1d4ed8"></span>Joiners</span>
+              <span class="legend-item"><span class="legend-dot" style="--c:#059669"></span>Movers</span>
+              <span class="legend-item"><span class="legend-dot" style="--c:#dc2626"></span>Leavers</span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="lifecycleChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Request Distribution</h2>
+              <p class="card-subtitle">Breakdown by operation type</p>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="requestsDonut"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPERATIONS & ACTIVITY ROW -->
+      <div class="bottom-row">
+        <!-- Recent Activity Feed -->
+        <div class="card activity-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Audit Activity Feed</h2>
+              <p class="card-subtitle">Real-time identity events</p>
+            </div>
+            <button class="btn-link" onclick="navigateTo('audit')">View full log →</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table data-table--compact">
+              <thead>
+                <tr>
+                  <th>Identity</th>
+                  <th>Department</th>
+                  <th>Action</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="dash-activity"><tr><td colspan="5"><div class="pu-state">Loading…</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quick Operations & Connector Status -->
+        <div class="card operations-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Quick Operations</h2>
+              <p class="card-subtitle">Automated workflows & actions</p>
+            </div>
+          </div>
+          <div class="operations-grid">
+            <button class="op-btn" onclick="navigateTo('ai-chat')">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+              <span>AI Automation</span>
+            </button>
+            <button class="op-btn" data-perm="identities:write" onclick="openOnboard()">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
+              <span>Onboard Identity</span>
+            </button>
+            <button class="op-btn" onclick="navigateTo('approvals')">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>Approvals Queue</span>
+            </button>
+            <button class="op-btn" onclick="navigateTo('risk')">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+              <span>Risk Analytics</span>
+            </button>
+          </div>
+
+          <div class="connector-status-section">
+            <h3 class="connector-status-title">Identity Connectors</h3>
+            <div class="connector-list" id="dash-connectors"><div class="pu-state">Loading…</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE: AI ASSISTANT -->
+    <section class="page" id="page-ai-chat">
+      <div class="chat-layout">
+        <aside class="chat-sidebar">
+          <div class="chat-sidebar__header">
+            <h2>Saved Requests</h2>
+            <button class="btn-secondary btn-sm" id="new-chat-btn">+ New</button>
+          </div>
+          <ul class="chat-history" id="chat-history"><li class="pu-state">Loading…</li></ul>
+
+          <div class="suggested-section">
+            <div class="suggested-label">Quick Questions</div>
+          <button class="suggestion-chip" onclick="injectPrompt('Show high-risk identities')"><span>High-Risk Identities</span></button>
+          <button class="suggestion-chip" onclick="injectPrompt('Show pending approvals')"><span>Pending Approvals</span></button>
+          <button class="suggestion-chip" onclick="injectPrompt('Show open leaver requests')"><span>Open Leaver Requests</span></button>
+          <button class="suggestion-chip" onclick="injectPrompt('How do I onboard someone?')"><span>Onboarding Help</span></button>
+        </div>
+        </aside>
+
+        <div class="chat-main">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-welcome">
+              <div class="chat-welcome-badge">Read-only lookups</div>
+              <h2>Directory Assistant</h2>
+              <p>Ask about an identity, risk scores, pending approvals or open Leaver requests. Answers come from live directory records.</p>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+              <textarea id="chat-input" placeholder="e.g. 'Risk details for kai.chen' or 'Show pending approvals'" rows="1"></textarea>
+              <button class="send-btn" id="send-btn" aria-label="Send Request">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="chat-disclaimer">Rule-based lookups over persisted records, not a generative model. This assistant cannot change access.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE: USER MANAGEMENT / IDENTITIES -->
+    <section class="page" id="page-users">
+      <div class="page-toolbar">
+        <div class="tab-group" role="tablist">
+          <button class="tab active" role="tab" data-tab="joiners">Joiners <span class="tab-count" id="count-joiner">–</span></button>
+          <button class="tab" role="tab" data-tab="movers">Movers <span class="tab-count" id="count-mover">–</span></button>
+          <button class="tab" role="tab" data-tab="leavers">Leavers <span class="tab-count" id="count-leaver">–</span></button>
+          <button class="tab" role="tab" data-tab="all-users">All Directory <span class="tab-count" id="count-directory">–</span></button>
+        </div>
+        <div class="toolbar-actions">
+          <input type="search" class="table-search" placeholder="Filter by name or email..." id="user-search" />
+          <button class="btn-primary" data-perm="identities:write" onclick="openOnboard()">+ Onboard Identity</button>
+        </div>
+      </div>
+
+      <!-- TAB: JOINERS -->
+      <div class="tab-content active" id="tab-joiners">
+        <div class="card table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Identity</th>
+                <th>Department</th>
+                <th>Start Date</th>
+                <th>Access Profile</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tb-joiners"><tr><td colspan="6"><div class="pu-state">Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: MOVERS -->
+      <div class="tab-content" id="tab-movers">
+        <div class="card table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Identity</th>
+                <th>Source Org</th>
+                <th>Target Org</th>
+                <th>Effective Date</th>
+                <th>Entitlement Delta</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tb-movers"><tr><td colspan="6"><div class="pu-state">Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: LEAVERS -->
+      <div class="tab-content" id="tab-leavers">
+        <div class="card table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Identity</th>
+                <th>Department</th>
+                <th>Termination Date</th>
+                <th>Deprovision Status</th>
+                <th>Access State</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tb-leavers"><tr><td colspan="6"><div class="pu-state">Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: ALL IDENTITIES -->
+      <div class="tab-content" id="tab-all-users">
+        <div class="card table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Identity</th>
+                <th>Department</th>
+                <th>Directory Role</th>
+                <th>Risk Score</th>
+                <th>Last Authentication</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody id="tb-all"><tr><td colspan="6"><div class="pu-state">Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card"><div class="pu-pager" id="idn-pager"><span id="idn-range"></span>
+        <span><button class="btn-secondary btn-xs" id="idn-prev">Previous</button> <button class="btn-secondary btn-xs" id="idn-next">Next</button></span></div></div>
+    
+    </section>
+
+    <!-- PAGE: APPROVALS -->
+    <section class="page" id="page-approvals">
+      <div class="approvals-header">
+        <div>
+          <h2 class="section-title">Pending Governance Approvals</h2>
+          <p class="section-subtitle">Review access requests, department transfers, and elevated privileges.</p>
+        </div>
+        <div class="approvals-count-badge" id="approvals-count">—</div>
+      </div>
+
+      <div class="pu-tabs" id="appr-tabs" style="margin-bottom:1rem">
+        <button class="pu-tab active" data-status="pending">Pending</button>
+        <button class="pu-tab" data-status="all">History</button>
+      </div>
+      <div class="approvals-grid" id="approvals-grid"><div class="pu-state">Loading…</div></div>
+      <div class="card"><div class="pu-pager"><span id="appr-range"></span>
+        <span><button class="btn-secondary btn-xs" id="appr-prev">Previous</button> <button class="btn-secondary btn-xs" id="appr-next">Next</button></span></div></div>
+    
+    </section>
+
+    <!-- PAGE: RISK ANALYTICS -->
+    <section class="page" id="page-risk">
+      <div class="risk-header-cards">
+        <div class="card risk-stat-card"><span class="risk-stat-label">High-Risk (Score 75–100)</span><div class="risk-stat-num text-danger" id="risk-high">—</div><span class="risk-stat-sub">Immediate remediation needed</span></div>
+        <div class="card risk-stat-card"><span class="risk-stat-label">Medium-Risk (Score 40–74)</span><div class="risk-stat-num text-warning" id="risk-med">—</div><span class="risk-stat-sub">Under continuous monitoring</span></div>
+        <div class="card risk-stat-card"><span class="risk-stat-label">Low-Risk (Score 0–39)</span><div class="risk-stat-num text-success" id="risk-low">—</div><span class="risk-stat-sub">Standard policy compliance</span></div>
+        <div class="card risk-stat-card"><span class="risk-stat-label">Enterprise Compliance Index</span><div class="risk-stat-num text-primary" id="risk-compliance">—</div><span class="risk-stat-sub" id="risk-compliance-sub"></span></div>
+      </div>
+
+      <div class="charts-row">
+        <div class="card chart-card chart-card--wide">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">30-Day Risk Trajectory</h2>
+              <p class="card-subtitle">Aggregate enterprise identity risk curve</p>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="riskTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Primary Risk Triggers</h2>
+              <p class="card-subtitle">Distribution of security anomalies</p>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="riskFactorsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card table-card mt-4">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Flagged Identity Profiles</h2>
+            <p class="card-subtitle">Accounts exceeding security risk baseline</p>
+          </div>
+          <button class="btn-secondary btn-sm" id="risk-export">Export Report (CSV)</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Identity</th>
+              <th>Department</th>
+              <th>Risk Score</th>
+              <th>Primary Detection Trigger</th>
+              <th>Last Review</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="risk-flagged"><tr><td colspan="6"><div class="pu-state">Loading…</div></td></tr></tbody>
+        </table>
+        <div class="pu-pager"><span id="risk-range"></span><span><button class="btn-secondary btn-xs" id="risk-prev">Previous</button> <button class="btn-secondary btn-xs" id="risk-next">Next</button></span></div>
+      </div>
+    </section>
+
+    <!-- PAGE: AUDIT LOGS -->
+    <section class="page" id="page-audit">
+      <div class="audit-toolbar">
+        <div class="audit-filters">
+          <select class="filter-select" id="audit-event-filter">
+            <option value="">All Events</option><option value="provisioning">Provisioning</option><option value="access_change">Access Change</option>
+            <option value="login">Login</option><option value="risk_alert">Risk Alert</option><option value="approval">Approval</option><option value="system">System</option>
+          </select>
+          <select class="filter-select" id="audit-severity-filter">
+            <option value="">All Severities</option><option value="critical">Critical</option><option value="high">High</option>
+            <option value="medium">Medium</option><option value="low">Low</option><option value="info">Info</option>
+          </select>
+          <input type="search" class="filter-select" id="audit-search" placeholder="Search event, actor, target…" />
+        </div>
+        <button class="btn-secondary btn-sm" id="audit-export">Export Audit Log (CSV)</button>
+      </div>
+
+      <div class="card table-card">
+        <table class="data-table audit-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Event</th>
+              <th>Actor</th>
+              <th>Target</th>
+              <th>Severity</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody id="audit-body"><tr><td colspan="6"><div class="pu-state">Loading…</div></td></tr></tbody>
+        </table>
+        <div class="pu-pager"><span id="audit-range"></span><span><button class="btn-secondary btn-xs" id="audit-prev">Previous</button> <button class="btn-secondary btn-xs" id="audit-next">Next</button></span></div>
+      </div>
+    </section>
+
+    <!-- PAGE: GOVERNANCE -->
+    <section class="page" id="page-governance">
+      <div class="gov-grid">
+        <div class="card gov-card">
+          <div class="card-header"><div><h2 class="card-title">Regulatory Frameworks</h2><p class="card-subtitle">Share of tested controls passing</p></div>
+            <span class="status-pill status-pill--neutral" id="gov-overall">—</span></div>
+          <div class="compliance-list" id="gov-frameworks"><div class="pu-state">Loading…</div></div>
+        </div>
+        <div class="card gov-card">
+          <div class="card-header"><div><h2 class="card-title">Access Certifications</h2><p class="card-subtitle">Recertification campaigns</p></div>
+            <button class="btn-primary btn-xs" data-perm="governance:manage" onclick="openCampaign()">Launch Campaign</button></div>
+          <div class="cert-list" id="gov-campaigns"><div class="pu-state">Loading…</div></div>
+        </div>
+        <div class="card gov-card">
+          <div class="card-header"><div><h2 class="card-title">Segregation of Duties (SoD)</h2><p class="card-subtitle">Identities holding conflicting entitlements</p></div>
+            <span class="status-pill status-pill--neutral" id="gov-sod-count">—</span></div>
+          <ul class="sod-list" id="gov-sod"><li class="pu-state">Loading…</li></ul>
+        </div>
+        <div class="card gov-card">
+          <div class="card-header"><div><h2 class="card-title">Enterprise Connectors</h2><p class="card-subtitle">Configured federation &amp; provisioning targets</p></div></div>
+          <ul class="systems-list" id="gov-connectors"><li class="pu-state">Loading…</li></ul>
+        </div>
+      </div>
+    
+    </section>
+    <!-- PAGE: NO ACCESS -->
+    <section class="page" id="page-no-access">
+      <div class="card"><div class="pu-state">Your account is active but has no access to any IdentityOS modules yet. Ask an administrator to assign a role.</div></div>
+    </section>
+
+    <!-- PAGE: PLATFORM USERS (portal login accounts; separate from managed identities) -->
+    <section class="page" id="page-platform-users">
+      <div class="page-toolbar">
+        <div class="pu-tabs" id="pu-tabs">
+          <button class="pu-tab active" data-status="pending">Pending</button>
+          <button class="pu-tab" data-status="active">Active</button>
+          <button class="pu-tab" data-status="suspended">Suspended</button>
+          <button class="pu-tab" data-status="rejected">Rejected</button>
+          <button class="pu-tab" data-status="all">All</button>
+        </div>
+        <div class="toolbar-actions">
+          <input type="search" class="table-search" placeholder="Filter by name or email..." id="pu-search" />
+        </div>
+      </div>
+      <div class="card table-card">
+        <table class="data-table">
+          <thead><tr><th>Account</th><th>Role</th><th>Status</th><th>Requested</th><th>Last sign-in</th><th>Actions</th></tr></thead>
+          <tbody id="pu-body"></tbody>
+        </table>
+        <div class="pu-pager"><span id="pu-range"></span>
+          <span><button class="btn-secondary btn-xs" id="pu-prev">Previous</button> <button class="btn-secondary btn-xs" id="pu-next">Next</button></span></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: REASON (platform users) -->
+  <dialog class="modal" id="pu-reason-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><h2 id="pu-reason-title">Reason</h2><p class="modal-subtitle">Recorded in the audit log.</p></div>
+        <button class="modal-close" type="button" onclick="closeModal('pu-reason-modal')" aria-label="Close">✕</button>
+      </div>
+      <form class="modal-form" id="pu-reason-form">
+        <div class="form-group"><label for="pu-reason-text">Reason (optional)</label><input type="text" id="pu-reason-text" maxlength="500" /></div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('pu-reason-modal')">Cancel</button>
+          <button type="submit" class="btn-primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL: IDENTITY DETAIL -->
+  <dialog class="modal" id="identity-modal">
+    <div class="modal-content">
+      <div class="modal-header"><div><h2 id="idm-title">Identity</h2><p class="modal-subtitle" id="idm-sub"></p></div>
+        <button class="modal-close" onclick="closeModal('identity-modal')" aria-label="Close">✕</button></div>
+      <div id="idm-body" style="padding:1rem 1.5rem 1.5rem;max-height:65vh;overflow:auto"></div>
+    </div>
+  </dialog>
+
+  <!-- MODAL: LAUNCH CAMPAIGN -->
+  <dialog class="modal" id="campaign-modal">
+    <div class="modal-content">
+      <div class="modal-header"><div><h2>Launch Certification Campaign</h2><p class="modal-subtitle">Reviewers will certify each in-scope identity.</p></div>
+        <button class="modal-close" onclick="closeModal('campaign-modal')" aria-label="Close">✕</button></div>
+      <form class="modal-form" id="campaign-form">
+        <div class="form-group"><label for="camp-name">Campaign name</label><input type="text" id="camp-name" required maxlength="200" /><span class="field-error" data-for="name"></span></div>
+        <div class="form-row">
+          <div class="form-group"><label for="camp-scope">Scope</label><select id="camp-scope">
+            <option value="department">A department</option><option value="privileged">Privileged identities</option><option value="service">Service identities</option></select></div>
+          <div class="form-group" id="camp-dept-wrap"><label for="camp-dept">Department</label><select id="camp-dept"></select><span class="field-error" data-for="department_id"></span></div>
+        </div>
+        <div class="form-group"><label for="camp-due">Due date</label><input type="date" id="camp-due" required /><span class="field-error" data-for="due_date"></span></div>
+        <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('campaign-modal')">Cancel</button>
+          <button type="submit" class="btn-primary" id="camp-submit">Launch</button></div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL: ADD USER -->
+  <dialog class="modal" id="add-user-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-title">Onboard New Identity</h2>
+          <p class="modal-subtitle">Initiate automated Joiner workflow with policy verification.</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('add-user-modal')" aria-label="Close modal">✕</button>
+      </div>
+      <form class="modal-form" id="add-user-form" onsubmit="submitAddUser(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="user-fname">First Name</label>
+            <input type="text" id="user-fname" placeholder="e.g. Priya" required />
+          </div>
+          <div class="form-group">
+            <label for="user-lname">Last Name</label>
+            <input type="text" id="user-lname" placeholder="e.g. Sharma" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="user-email">Corporate Email</label>
+          <input type="email" id="user-email" placeholder="name@yourcompany.com" required />
+          <span class="field-error" data-for="email"></span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="user-dept">Department</label>
+            <select id="user-dept" required></select>
+          </div>
+          <div class="form-group">
+            <label for="user-role">Access Profile</label>
+            <select id="user-role" required></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="user-start">Effective Start Date</label>
+          <input type="date" id="user-start" required />
+          <span class="field-error" data-for="start_date"></span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('add-user-modal')">Cancel</button>
+          <button type="submit" class="btn-primary" id="user-submit">Submit for Approval</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+  <script src="mobile-nav.js"></script>
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+  <script src="platform-users.js"></script>
+  <script src="pages.js"></script>
+</body>
+</html>

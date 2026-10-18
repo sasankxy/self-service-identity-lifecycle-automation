@@ -1,0 +1,238 @@
+/* ==========================================================================
+   IdentityOS — responsive layer
+   Loaded AFTER style.css and auth.css. Purely additive: desktop (>1024px)
+   is untouched. Breakpoints: 1024 (drawer nav) · 900 (compact topbar/chat)
+   · 720 (phone layouts) · 420 (small phones).
+   ========================================================================== */
+
+/* Hidden on desktop; revealed by the media queries below */
+.menu-btn,
+.search-toggle,
+.sidebar-backdrop,
+.auth-mobile-brand { display: none; }
+
+/* Grid/flex children must be allowed to shrink or wide tables/canvases
+   blow the layout out sideways. */
+.main { min-width: 0; }
+.charts-row > *, .bottom-row > *, .gov-grid > *, .approvals-grid > *,
+.kpi-grid > *, .risk-header-cards > * { min-width: 0; }
+canvas { max-width: 100%; }
+.data-table th { white-space: nowrap; }
+.auth-body { min-height: 100vh; min-height: 100dvh; }
+
+/* ── ≤1024px: sidebar becomes an off-canvas drawer ───────────────────── */
+@media (max-width: 1024px) {
+  .menu-btn { display: flex; flex-shrink: 0; }
+
+  .sidebar {
+    width: min(280px, 86vw);
+    transform: translateX(-100%);
+    visibility: hidden;                       /* keeps closed drawer out of tab order */
+    transition: transform .22s ease, visibility 0s linear .22s;
+    padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(.85rem + env(safe-area-inset-left, 0px));
+  }
+  .sidebar.open {
+    transform: none;
+    visibility: visible;
+    transition-delay: 0s;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 95;                              /* above topbar (90), below sidebar (100) */
+    background: rgba(15, 23, 42, .55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+  body.nav-open .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+  body.nav-open { overflow: hidden; }
+
+  .main { margin-left: 0; }
+
+  .topbar {
+    height: auto;
+    min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 1rem 0;
+    gap: .6rem;
+    flex-wrap: wrap;
+    align-content: center;
+  }
+  .topbar__left { flex: 1; min-width: 0; }
+  .page-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-bar { width: 200px; }
+  .search-bar:focus-within { width: 230px; }
+
+  .page { padding: 1.25rem 1rem; }
+
+  /* Tables scroll inside their card instead of clipping or stretching the page */
+  .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-card .data-table { min-width: 680px; }
+  .table-card .audit-table { min-width: 780px; }
+  .table-responsive .data-table { min-width: 520px; }
+  .table-card .pu-pager { position: sticky; left: 0; }
+
+  .card-header { flex-wrap: wrap; gap: .5rem; }
+}
+
+/* ── ≤900px: compact topbar, collapsible search, chat strip ──────────── */
+@media (max-width: 900px) {
+  /* Flatten the right-hand group so its buttons share the topbar row */
+  .topbar__right { display: contents; }
+
+  .system-status-badge { padding: .4rem; }
+  .system-status-badge #sys-text {            /* dot only; text stays for screen readers */
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  .search-toggle { display: flex; }
+  .topbar .search-bar {
+    display: none;
+    order: 10;
+    flex: 1 0 100%;
+    width: 100%;
+    margin-bottom: .6rem;
+  }
+  .topbar.search-open .search-bar { display: flex; }
+  .search-bar:focus-within { width: 100%; }
+
+  /* Inputs under 16px make iOS Safari zoom the page on focus */
+  input, select, textarea,
+  .table-search, .filter-select, #chat-input, .search-bar input { font-size: 16px; }
+
+  /* Chat: keep "+ New" and the quick questions as a scrolling strip */
+  .chat-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100vh - var(--topbar-height) - 3rem);
+    height: calc(100dvh - var(--topbar-height) - 3rem - env(safe-area-inset-top, 0px));
+    min-height: 420px;
+  }
+  .chat-sidebar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: .5rem;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    min-width: 0;
+  }
+  .chat-sidebar__header { margin: 0; flex-shrink: 0; }
+  .chat-sidebar__header h2,
+  .chat-history,
+  .suggested-label { display: none; }
+  .suggested-section {
+    flex: 1; min-width: 0;
+    flex-direction: row;
+    gap: .4rem;
+    padding: 0;
+    border: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .suggested-section::-webkit-scrollbar { display: none; }
+  .suggestion-chip { white-space: nowrap; flex-shrink: 0; padding: .5rem .75rem; }
+  .chat-bubble { max-width: 92%; }
+}
+
+/* ── ≤720px: phone layouts ───────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .main { padding-bottom: 1rem; }
+  .page { padding: 1rem; }
+  .card { padding: 1rem; }
+  .breadcrumb { display: none; }
+
+  .kpi-card__top { flex-wrap: wrap; gap: .25rem; }
+  .kpi-value { font-size: 1.5rem; }
+  .risk-stat-num { font-size: 1.6rem; }
+
+  /* Toolbars stack; tab strips scroll sideways rather than wrapping */
+  .page-toolbar, .audit-toolbar { flex-direction: column; align-items: stretch; }
+  .tab-group, .pu-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-group::-webkit-scrollbar, .pu-tabs::-webkit-scrollbar { display: none; }
+  .tab, .pu-tab { white-space: nowrap; flex-shrink: 0; }
+
+  .toolbar-actions { width: 100%; flex-wrap: wrap; }
+  .toolbar-actions .table-search { flex: 1 1 100%; width: auto; }
+  .toolbar-actions .btn-primary { flex: 1 1 auto; justify-content: center; }
+
+  .audit-filters { display: grid; grid-template-columns: 1fr 1fr; }
+  .audit-filters input { grid-column: 1 / -1; }
+  .audit-toolbar > .btn-secondary { width: 100%; }
+
+  .approvals-header { flex-wrap: wrap; gap: .75rem; }
+  .approval-top { flex-wrap: wrap; gap: .35rem; }
+  .approval-actions { flex-wrap: wrap; }
+  .approval-actions > * { flex: 1 1 auto; }
+
+  .chart-legend { flex-wrap: wrap; gap: .4rem .85rem; }
+  .cert-item, .sod-item { flex-wrap: wrap; gap: .5rem; }
+  .cert-progress-wrap { width: 100%; }
+  .pu-pager { flex-wrap: wrap; gap: .5rem; }
+
+  /* Dialogs: never taller than the screen, scroll inside */
+  .modal { width: calc(100% - 1.5rem); }
+  .modal-content { padding: 1.1rem; max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+  .form-row { grid-template-columns: 1fr; }
+  .modal-footer { flex-direction: column-reverse; }
+  .modal-footer > * { width: 100%; justify-content: center; }
+
+  .toast-container { left: 1rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+  .toast { min-width: 0; width: 100%; }
+}
+
+/* ── ≤420px: small phones ────────────────────────────────────────────── */
+@media (max-width: 420px) {
+  .topbar { padding-left: .75rem; padding-right: .75rem; gap: .4rem; }
+  .page { padding: .75rem; }
+  .kpi-grid, .risk-header-cards, .operations-grid { grid-template-columns: 1fr; }
+  .audit-filters { grid-template-columns: 1fr; }
+}
+
+/* ── Touch devices: comfortable tap targets ──────────────────────────── */
+@media (pointer: coarse) {
+  .icon-btn { width: 40px; height: 40px; }
+  .nav-item { min-height: 44px; }
+  .btn-primary, .btn-secondary, .btn-danger, .btn-approve,
+  .tab, .pu-tab, .auth-tab { min-height: 40px; }
+  .btn-xs, .btn-sm { min-height: 36px; }
+  .modal-close { min-width: 40px; min-height: 40px; }
+}
+
+/* ── Login page ──────────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .auth-body { padding: 1rem; }
+  .auth-shell { width: min(480px, 100%); }
+  /* The navy aside is hidden here, so show a compact brand header instead */
+  .auth-mobile-brand { display: flex; align-items: center; gap: .65rem; margin-bottom: 1.25rem; }
+  .auth-mobile-brand strong { font-size: 1.1rem; letter-spacing: -.01em; }
+}
+@media (max-width: 480px) {
+  .auth-body {
+    display: block;
+    padding: env(safe-area-inset-top, 0px) 0 0;
+  }
+  .auth-shell { width: 100%; min-height: 100vh; min-height: 100dvh; border-radius: 0; box-shadow: none; }
+  .auth-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-backdrop { transition: none; }
+}
