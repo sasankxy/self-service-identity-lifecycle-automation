@@ -202,10 +202,10 @@
   /* onboarding modal: dropdowns come from the DB */
   let lookups = null;
   async function ensureLookups() { if (!lookups) lookups = await api('/meta/lookups'); return lookups; }
-  window.openOnboard = async function () {
+  window.openOnboard = async function (prefill) {
     try {
       const lk = await ensureLookups();
-      const dept = $('user-dept'), prof = $('user-role');
+      const dept = $('user-dept'), prof = document.querySelector('select#user-role');   // the sidebar label also uses id=user-role, so target the <select> explicitly
       dept.innerHTML = lk.departments.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
       const fillProfiles = () => {
         const mine = lk.access_profiles.filter((p) => p.department_id === dept.value), list = mine.length ? mine : lk.access_profiles;
@@ -213,6 +213,12 @@
       };
       dept.onchange = fillProfiles; fillProfiles();
       const start = $('user-start'); if (!start.value) start.value = new Date().toISOString().slice(0, 10);
+      if (prefill && typeof prefill === 'object') {   // from the AI assistant: the person still reviews and submits
+        if (prefill.first_name) $('user-fname').value = prefill.first_name;
+        if (prefill.last_name) $('user-lname').value = prefill.last_name;
+        if (prefill.department_id && [...dept.options].some((o) => o.value === prefill.department_id)) { dept.value = prefill.department_id; fillProfiles(); }
+        if (prefill.start_date) start.value = prefill.start_date;
+      }
       document.querySelectorAll('#add-user-form .field-error').forEach((e) => { e.textContent = ''; });
       openModal('add-user-modal');
     } catch (e) { showToast(`Could not load form options: ${e.message}`, 'danger'); }
@@ -224,7 +230,7 @@
     try {
       const r = await api('/identities', { method: 'POST', body: {
         first_name: $('user-fname').value, last_name: $('user-lname').value, email: $('user-email').value,
-        department_id: $('user-dept').value, access_profile_id: $('user-role').value, start_date: $('user-start').value } });
+        department_id: $('user-dept').value, access_profile_id: document.querySelector('select#user-role').value, start_date: $('user-start').value } });
       closeModal('add-user-modal'); $('add-user-form').reset();
       showToast(`${r.name} submitted for approval (${r.request_ref}).`, 'success');
       refreshBadges(); loadCounts();
@@ -370,7 +376,25 @@
       else if (b.type === 'list') { el = document.createElement('ul'); el.style.cssText = 'margin:.3rem 0;padding-left:1.1rem;line-height:1.7'; b.items.forEach((t) => { const li = document.createElement('li'); li.textContent = t; el.appendChild(li); }); }
       else if (b.type === 'kv') { el = document.createElement('div'); el.className = 'chat-step-box'; b.items.forEach(([k, v]) => { const r = document.createElement('div'); const s = document.createElement('span'); s.className = 'meta-label'; s.textContent = `${k}: `; r.append(s, document.createTextNode(v)); el.appendChild(r); }); }
       else if (b.type === 'action') { el = document.createElement('button'); el.className = 'btn-secondary btn-sm'; el.style.marginTop = '.4rem'; el.textContent = b.label;
-        el.onclick = () => (b.action === 'open-onboard' ? openOnboard() : b.action.startsWith('nav:') && navigateTo(b.action.slice(4))); }
+        el.onclick = async () => {
+          if (b.action === 'open-onboard') return openOnboard(b.prefill);
+          if (b.action.startsWith('nav:')) return navigateTo(b.action.slice(4));
+          if (b.action.startsWith('prompt:')) return injectPrompt(b.action.slice(7));
+          if (b.action === 'replan') {                      // re-plan with the chosen option; read-only
+            el.disabled = true;
+            try { const r = await api('/assistant/plan', { method: 'POST', body: b.proposal }); el.after(renderBlocks(r.blocks)); }
+            catch (e) { el.disabled = false; el.after(Object.assign(document.createElement('div'), { className: 'kpi-subtext', textContent: e.message })); }
+            return;
+          }
+          if (b.action === 'execute') {                     // the server re-checks policy; this only confirms what the user reviewed
+            el.disabled = true; el.textContent = 'Working…';
+            try {
+              const r = await api('/assistant/execute', { method: 'POST', body: { proposal: b.proposal, expected_decision: b.expected_decision } });
+              el.textContent = 'Done'; el.after(renderBlocks(r.blocks));
+              if (window.refreshBadges) window.refreshBadges();
+            } catch (e) { el.disabled = false; el.textContent = b.label; el.after(Object.assign(document.createElement('div'), { className: 'kpi-subtext', textContent: e.message })); }
+          }
+        }; }
       if (el) wrap.appendChild(el);
     });
     return wrap;

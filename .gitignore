@@ -1,8 +1,9 @@
-.DS_Store
-Thumbs.db
-*.log
-.vscode/
-.idea/
 .env
-venv
+venv/
+__pycache__/
+*.pyc
+*.pem
 .pytest_cache/
+nlu/
+.vscode/
+frontend.zip

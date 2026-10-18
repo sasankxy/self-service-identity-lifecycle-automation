@@ -357,3 +357,323 @@ async def test_seed_is_idempotent_and_consistent(app):
     assert await scalar(app, "select count(*) from approval_requests a join lifecycle_requests r on r.id=a.lifecycle_request_id where a.status='pending' and r.status<>'pending_approval'") == 0
     assert await scalar(app, "select count(*) from identities i join lateral (select score from risk_assessments r where r.identity_id=i.id order by assessed_at desc limit 1) l on true where l.score<>i.risk_score and i.is_demo and i.employee_id not like 'EMP-%'") == 0
     assert await scalar(app, "select count(*) from audit_logs where target_type='identity' and target_id not in (select id::text from identities)") == 0
+
+
+# ------------------------------------------------------------------ assistant + NLU pipeline
+async def _ask(c, q):
+    r = await c.post(f"{API}/assistant/query", {"query": q})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _texts(r):
+    out = []
+    for b in r["blocks"]:
+        out += [b.get("text", "")] + [x if isinstance(x, str) else " ".join(x) for x in b.get("items", [])]
+    return " | ".join(out)
+
+
+async def test_assistant_nlu_status_query_uses_live_entitlements(as_role, app):
+    c = await as_role("auditor")
+    r = await _ask(c, "What access does Kai Chen have to Slack?")
+    assert r["nlu"]["intent"] == "ACCESS_STATUS_QUERY" and "not a generative model" in r["source"]
+    assert any(b["type"] == "kv" and ["Risk score", "87 / 100 (high)"] in b["items"] for b in r["blocks"])
+    assert "Slack Enterprise" in _texts(r)                      # filtered to the requested application
+
+
+async def test_assistant_nlu_mover_is_read_only_and_checks_directory(as_role):
+    c = await as_role("auditor")
+    r = await _ask(c, "Move Kai Chen from Finance to Sales")
+    assert r["nlu"]["intent"] == "MOVER"
+    t = _texts(r)
+    assert "not Finance" in t and "Policy decision" in t                  # Kai is not in Finance in the directory
+    assert not any(b["type"] == "action" and b["action"] == "execute" for b in r["blocks"])   # auditor: review only
+    assert "can review this but not submit" in t
+
+
+async def test_assistant_nlu_joiner_prefills_form_only_for_writers(as_role):
+    c = await as_role("auditor")
+    r = await _ask(c, "Onboard Zed Qwerty to Sales next Monday")
+    assert r["nlu"]["intent"] == "JOINER" and not any(b["type"] == "action" for b in r["blocks"])
+
+
+async def test_assistant_nlu_clarifies_instead_of_guessing(as_role):
+    c = await as_role("auditor")
+    r = await _ask(c, "Move Kai Chen")                                    # target department missing
+    assert r["nlu"]["status"] == "NEEDS_CLARIFICATION" and "more detail" in _texts(r)
+
+
+async def test_assistant_keeps_analytics_questions_on_keyword_rules(as_role, app):
+    c = await as_role("auditor")
+    for q in ("show pending approvals", "show high-risk identities", "show open leaver requests"):
+        r = await _ask(c, q)
+        assert r["nlu"] is None, q                                        # NLU mislabels these; they must not be hijacked
+    n = await scalar(app, "select count(*) from approval_requests where status='pending'")
+    assert (await _ask(c, "show pending approvals"))["blocks"][0]["text"] == f"{n} approval(s) pending"
+
+
+async def test_assistant_degrades_to_keyword_rules_if_nlu_unavailable(as_role, monkeypatch):
+    from app.services import nlu
+
+    async def broken(*a, **k):
+        return None
+    monkeypatch.setattr(nlu, "parse", broken)
+    c = await as_role("auditor")
+    r = await _ask(c, "what is the risk for Kai Chen?")
+    assert r["nlu"] is None and any(b["type"] == "kv" for b in r["blocks"])
+
+
+async def test_assistant_nlu_joiner_prefill_for_iam_admin(as_role, app):
+    c = await as_role("iam_admin")
+    r = await _ask(c, "Onboard Zed Qwerty to Sales next Monday")
+    act = next(b for b in r["blocks"] if b["type"] == "action")
+    dept_id = await scalar(app, "select id::text from departments where name='Sales'")
+    assert act["action"] == "open-onboard"
+    assert act["prefill"]["first_name"] == "Zed" and act["prefill"]["last_name"] == "Qwerty"
+    assert act["prefill"]["department_id"] == dept_id and act["prefill"]["start_date"]
+    n = await scalar(app, "select count(*) from identities where full_name='Zed Qwerty'")
+    assert n == 0                                                         # nothing is ever created from chat
+
+
+async def test_assistant_nlu_self_reference_resolves_signed_in_user(as_role, app):
+    c = await as_role("auditor")
+    r = await _ask(c, "What access do I have?")
+    assert r["nlu"]["intent"] == "ACCESS_STATUS_QUERY"
+    assert "couldn't find a matching identity" in _texts(r)               # portal user auditor@corp.com has no directory identity
+
+
+# ------------------------------------------------------------------ policy engine + execution from chat
+from sqlalchemy import text as _sql
+
+
+async def _exec(app, sql, **kw):
+    async with app.state.sessionmaker() as db:
+        await db.execute(_sql(sql), kw)
+        await db.commit()
+
+
+async def _low_risk(app, dept):
+    """A low-risk active identity in `dept` whose name is unique in the directory."""
+    return await scalar(app, f"select full_name from identities i join departments d on d.id=i.department_id where d.name='{dept}' "
+                             "and i.risk_score < 40 and i.lifecycle_state='active' and (select count(*) from identities x where x.full_name=i.full_name)=1 "
+                             "and i.full_name not like '%''%' order by i.full_name limit 1")
+
+
+def _action(r):
+    return next((b for b in r["blocks"] if b["type"] == "action" and b["action"] == "execute"), None)
+
+
+async def test_brief_example_is_parsed_as_one_mover_with_access(as_role, app):
+    name = await _low_risk(app, "Engineering")
+    c = await as_role("iam_admin")
+    r = await _ask(c, f"Move {name} from Engineering to Finance and give them access to SAP starting next Monday.")
+    assert r["nlu"]["intent"] == "MOVER" and r["nlu"]["status"] == "PARSED"
+    t = _texts(r)
+    assert "Finance ERP" in t and "Engineering → Finance" in t            # SAP -> ERP -> the Finance baseline entitlement
+    act = _action(r)
+    assert act and act["expected_decision"] == "auto" and act["label"].startswith("Confirm (scheduled for")
+
+
+async def test_auto_approved_move_is_scheduled_then_applied_on_the_date(as_role, app):
+    from datetime import date, timedelta
+    from app.services.lifecycle import apply_due_requests
+    name = await _low_risk(app, "Engineering")
+    c = await as_role("iam_admin")
+    act = _action(await _ask(c, f"Move {name} from Engineering to Finance and give them access to SAP starting next Monday."))
+    res = await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "auto"})
+    assert res.status_code == 200, res.text
+    out = res.json()
+    assert out["decision"] == "auto" and out["applied"] is False and out["scheduled_for"]
+    dept = lambda: scalar(app, f"select d.name from identities i join departments d on d.id=i.department_id where i.full_name='{name}'")
+    assert await dept() == "Engineering"                                   # not before the effective date
+    assert await scalar(app, "select count(*) from approval_requests where status='approved' and decision_comment like 'Auto-approved by policy%'") == 1
+    assert await scalar(app, "select count(*) from audit_logs where action='assistant.request_auto_approved'") == 1
+    async with app.state.sessionmaker() as db:
+        assert await apply_due_requests(db, today=date.today() + timedelta(days=10)) == 1
+    assert await dept() == "Finance"
+    assert await scalar(app, f"select count(*) from identity_entitlements ie join entitlements e on e.id=ie.entitlement_id join identities i on i.id=ie.identity_id "
+                             f"where i.full_name='{name}' and e.name='Finance ERP' and ie.status='pending'") == 1
+
+
+async def test_immediate_auto_move_applies_now_and_is_idempotent(as_role, app):
+    name = await _low_risk(app, "Sales")
+    c = await as_role("iam_admin")
+    act = _action(await _ask(c, f"Move {name} from Sales to Marketing"))
+    assert act["expected_decision"] == "auto"
+    out = (await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "auto"})).json()
+    assert out["applied"] is True
+    assert await scalar(app, f"select d.name from identities i join departments d on d.id=i.department_id where i.full_name='{name}'") == "Marketing"
+    again = await _ask(c, f"Move {name} to Marketing")
+    assert _action(again) is None and "already in Marketing" in _texts(again)
+
+
+async def test_high_risk_entitlement_goes_to_a_human(as_role, app):
+    name = await _low_risk(app, "Engineering")
+    c = await as_role("iam_admin")
+    r = await _ask(c, f"Give {name} access to Documents")                  # Confidential Document Store: high risk, requires approval
+    act = _action(r)
+    assert act and act["expected_decision"] == "approval" and act["label"] == "Submit for approval"
+    before = await scalar(app, "select count(*) from approval_requests where status='pending'")
+    out = (await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "approval"})).json()
+    assert out["request_status"] == "pending_approval"
+    assert await scalar(app, "select count(*) from approval_requests where status='pending'") == before + 1
+    assert await scalar(app, f"select count(*) from identity_entitlements ie join identities i on i.id=ie.identity_id where i.full_name='{name}' and ie.source like 'request:%'") == 0
+    dup = await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "approval"})
+    assert dup.status_code == 409 and dup.json()["error"]["code"] == "duplicate_request"
+
+
+async def test_justification_text_never_changes_the_decision(as_role, app):
+    name = await _low_risk(app, "Engineering")
+    c = await as_role("iam_admin")
+    a = _action(await _ask(c, f"Give {name} access to Documents"))
+    b = _action(await _ask(c, f"Give {name} access to Documents because I need to finish my work and my manager said it's fine"))
+    assert a["expected_decision"] == b["expected_decision"] == "approval"
+
+
+async def test_separation_of_duties_is_denied(as_role, app):
+    name = await _low_risk(app, "Finance")
+    await _exec(app, "insert into identity_entitlements (identity_id, entitlement_id, status, source) "
+                     "select i.id, e.id, 'active', 'test' from identities i, entitlements e where i.full_name=:n and e.name='AP Payment Release'", n=name)
+    c = await as_role("iam_admin")
+    r = await _ask(c, f"Give {name} access to Vendor Management")
+    assert "blocked" in _texts(r) and "separation-of-duties" in _texts(r) and _action(r) is None
+
+
+async def test_high_risk_person_cannot_be_auto_approved_even_for_low_risk_access(as_role):
+    c = await as_role("iam_admin")
+    r = await _ask(c, "Give Kai Chen access to Zoom")
+    act = _action(r)
+    assert act and act["expected_decision"] == "approval" and "high risk score" in _texts(r)
+
+
+async def test_ambiguous_application_asks_which_entitlement(as_role, app):
+    name = await _low_risk(app, "Sales")
+    c = await as_role("iam_admin")
+    r = await _ask(c, f"Give {name} access to AWS")
+    assert _action(r) is None and "Which one do you need" in _texts(r)
+
+
+async def test_revocation_is_auto_and_removes_access(as_role, app):
+    name = await _low_risk(app, "Engineering")
+    await _exec(app, "insert into identity_entitlements (identity_id, entitlement_id, status, source) "
+                     "select i.id, e.id, 'active', 'test' from identities i, entitlements e where i.full_name=:n and e.name='Zoom Pro' "
+                     "on conflict do nothing", n=name)
+    c = await as_role("iam_admin")
+    act = _action(await _ask(c, f"Revoke {name}'s access to Zoom"))
+    assert act and act["expected_decision"] == "auto"
+    assert (await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "auto"})).json()["applied"] is True
+    assert await scalar(app, f"select count(*) from identity_entitlements ie join identities i on i.id=ie.identity_id join entitlements e on e.id=ie.entitlement_id "
+                             f"where i.full_name='{name}' and e.name='Zoom Pro' and ie.status='revoked'") == 1
+
+
+async def test_execute_rechecks_policy_and_enforces_permission(as_role, app):
+    name = await _low_risk(app, "Engineering")
+    c = await as_role("iam_admin")
+    act = _action(await _ask(c, f"Give {name} access to Documents"))
+    # a tampered client claiming the request is auto-approvable is refused: the server decides
+    r = await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "auto"})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "policy_changed"
+    aud = await as_role("auditor")
+    assert (await aud.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "approval"})).status_code == 403
+
+
+# ------------------------------------------------------------------ SLM fallback (suggest-only)
+class _FakeSLM:
+    def __init__(self, out): self.out, self.calls = out, 0
+    async def interpret(self, text, cat):
+        self.calls += 1
+        return self.out
+
+
+async def test_slm_is_not_consulted_when_the_custom_engine_understands(as_role, app):
+    from app.services import slm
+    fake = _FakeSLM({"intent": "MOVER", "person": "X", "source_department": None, "target_department": "Sales", "applications": [], "question": None, "rephrase": "x"})
+    slm.set_client(fake)
+    try:
+        c = await as_role("iam_admin")
+        await _ask(c, f"Move {await _low_risk(app, 'Sales')} to Marketing")
+        await _ask(c, "show pending approvals")
+        assert fake.calls == 0
+    finally:
+        slm.set_client(None)
+
+
+async def test_slm_suggestion_is_clickable_text_never_an_action(as_role):
+    from app.services import slm
+    out = slm.sanitize({"intent": "JOINER", "person": "Rahul Sharma", "source_department": None, "target_department": "finance",
+                        "applications": ["ERP", "Skynet"], "clarification_question": "Which role does he need?"},
+                       {"departments": ["Finance", "Sales"], "applications": ["ERP"]})
+    assert out["target_department"] == "Finance" and out["applications"] == ["ERP"]       # hallucinated app dropped, case normalised
+    slm.set_client(_FakeSLM(out))
+    try:
+        c = await as_role("iam_admin")
+        r = await _ask(c, "blorp the invoice people need whatever")
+        t = _texts(r)
+        assert r["nlu"]["slm_used"] is True and "can only suggest" in t
+        assert "Which role does he need?" not in t                      # suggestion is complete -> the model's own question is suppressed
+        assert _action(r) is None
+        assert any(b["type"] == "action" and b["action"] == "prompt:Onboard Rahul Sharma to Finance" for b in r["blocks"])
+    finally:
+        slm.set_client(None)
+
+
+def test_slm_keeps_its_question_only_when_it_has_no_actionable_suggestion():
+    from app.services import slm
+    cat = {"departments": ["Finance"], "applications": ["ERP"]}
+    out = slm.sanitize({"intent": "MOVER", "person": "Ana Lopez", "source_department": None, "target_department": None,
+                        "applications": [], "clarification_question": "Which department?"}, cat)
+    assert out["rephrase"] is None and out["question"] == "Which department?"
+
+
+def test_slm_sanitize_rejects_garbage_and_unknown_intents():
+    from app.services import slm
+    cat = {"departments": ["Finance"], "applications": ["ERP"]}
+    assert slm.sanitize("nope", cat) is None
+    assert slm.sanitize({"intent": "DELETE_EVERYTHING"}, cat) is None
+    assert slm.sanitize({"intent": "UNKNOWN", "clarification_question": None}, cat) is None
+
+
+# ------------------------------------------------------------------ a move provisions the target department's profile
+async def _row(app, sql):
+    async with app.state.sessionmaker() as db:
+        return (await db.execute(_sql(sql))).all()
+
+
+async def test_move_grants_target_profile_access_and_sets_profile(as_role, app):
+    name = await _low_risk(app, "Engineering")
+    c = await as_role("iam_admin")
+    r = await _ask(c, f"Move {name} to Finance")
+    t = _texts(r)
+    assert "Financial Analyst" in t and "Finance ERP" in t and "Keeps" in t           # grants the profile, shows what is kept
+    act = _action(r)
+    assert act["expected_decision"] == "auto"
+    assert (await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "auto"})).json()["applied"] is True
+    held = {n for (n, st) in await _row(app, f"select e.name, ie.status from identity_entitlements ie join entitlements e on e.id=ie.entitlement_id "
+                                              f"join identities i on i.id=ie.identity_id where i.full_name='{name}' and ie.status in ('active','pending')")}
+    assert "Finance ERP" in held and "Microsoft 365" in held and "GitHub Enterprise" not in held and "VPN Access" not in held
+    assert (await _row(app, f"select p.name from identities i join access_profiles p on p.id=i.access_profile_id where i.full_name='{name}'"))[0][0] == "Financial Analyst"
+
+
+async def test_move_into_department_with_several_profiles_asks_which_one(as_role, app):
+    name = await _low_risk(app, "Sales")
+    c = await as_role("iam_admin")
+    r = await _ask(c, f"Move {name} to Engineering")
+    assert "Which one should" in _texts(r) and _action(r) is None                       # nothing to confirm yet
+    pick = next(b for b in r["blocks"] if b["type"] == "action" and b["action"] == "replan" and b["label"] == "Use profile: Senior Developer")
+    r2 = (await c.post(f"{API}/assistant/plan", pick["proposal"])).json()
+    act = _action(r2)
+    assert act and act["expected_decision"] == "auto" and "Senior Developer" in _texts(r2)
+    assert (await c.post(f"{API}/assistant/execute", {"proposal": act["proposal"], "expected_decision": "auto"})).json()["applied"] is True
+    assert (await _row(app, f"select p.name from identities i join access_profiles p on p.id=i.access_profile_id where i.full_name='{name}'"))[0][0] == "Senior Developer"
+
+
+async def test_plan_endpoint_is_read_only_and_rejects_foreign_profiles(as_role, app):
+    name = await _low_risk(app, "Sales")
+    c = await as_role("auditor")                                                          # read-only role may re-plan, not execute
+    before = await scalar(app, "select count(*) from lifecycle_requests")
+    r = await _ask(c, f"Move {name} to Engineering")
+    pick = next(b for b in r["blocks"] if b["type"] == "action" and b["action"] == "replan")
+    assert (await c.post(f"{API}/assistant/plan", pick["proposal"])).status_code == 200
+    bad = await c.post(f"{API}/assistant/plan", {**pick["proposal"], "access_profile": "Financial Analyst"})   # not an Engineering profile
+    assert bad.status_code == 422
+    assert await scalar(app, "select count(*) from lifecycle_requests") == before                 # planning creates nothing

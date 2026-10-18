@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign in — IdentityOS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,39 +12,48 @@
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="auth.css" />
-  <link rel="stylesheet" href="responsive.css" />
 </head>
 
 <body class="auth-body">
   <main class="auth-shell">
     <section class="auth-aside" aria-hidden="true">
       <div class="brand-icon">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <path d="m9 12 2 2 4-4" />
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <!-- lifecycle ring: joiner → mover → leaver (fading) -->
+          <path d="M13.65 2.64A9.5 9.5 0 0 1 20.93 15.25" />
+          <path d="M19.28 18.11A9.5 9.5 0 0 1 4.72 18.11" opacity=".65" />
+          <path d="M3.07 15.25A9.5 9.5 0 0 1 10.35 2.64" opacity=".35" />
+          <!-- key = the "i": bow (dot) + blade (stem) + teeth -->
+          <circle cx="12" cy="7" r="2.4" stroke-width="2.1" />
+          <circle cx="12" cy="7" r=".7" fill="currentColor" stroke="none" />
+          <path d="M12 9.4V17.5" stroke-width="2.3" />
+          <path d="M12 13.6h2.7M12 16.2h1.8" stroke-width="2" />
         </svg>
       </div>
       <h1>IdentityOS</h1>
       <p>Enterprise identity lifecycle automation, access governance and audit — in one console.</p>
       <ul>
-        <li>Joiner · Mover · Leaver orchestration</li>
-        <li>Approval workflows &amp; SoD governance</li>
-        <li>Immutable audit trail</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 11l-3 3-2-2" />
+          </svg>Joiner · Mover · Leaver orchestration</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>Approval workflows &amp; SoD governance</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="10" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>Immutable audit trail</li>
       </ul>
     </section>
 
     <section class="auth-card card">
-      <div class="auth-mobile-brand" aria-hidden="true">
-        <div class="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-        </div>
-        <strong>IdentityOS</strong>
-      </div>
       <div class="auth-tabs" role="tablist">
         <button class="auth-tab active" role="tab" id="tab-signin" data-view="signin">Sign in</button>
         <button class="auth-tab" role="tab" id="tab-signup" data-view="signup">Create account</button>
@@ -53,45 +62,118 @@
       <div id="auth-banner" class="auth-banner" role="status" hidden></div>
 
       <form id="signin-form" class="auth-form" novalidate autocomplete="on">
+        <div class="auth-head">
+          <h2>Welcome back</h2>
+          <p>Sign in to your IdentityOS console.</p>
+        </div>
         <div class="form-group">
           <label for="si-email">Corporate email</label>
-          <input id="si-email" name="email" type="email" autocomplete="username" required />
+          <div class="input-wrap"><svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg><input id="si-email" name="email" type="email" autocomplete="username" required /></div>
           <span class="field-error" data-for="email"></span>
         </div>
         <div class="form-group">
           <label for="si-password">Password</label>
-          <input id="si-password" name="password" type="password" autocomplete="current-password" required />
+          <div class="input-wrap"><svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg><input id="si-password" name="password" type="password" autocomplete="current-password"
+              required /><button type="button" class="pw-toggle" aria-label="Show password" aria-pressed="false"><svg
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path class="eye" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+                <circle class="eye" cx="12" cy="12" r="3" />
+                <g class="eye-off">
+                  <path d="M3 3l18 18" />
+                  <path
+                    d="M10.6 6.1A9.7 9.7 0 0 1 12 6c6 0 10 6 10 6a17 17 0 0 1-3.2 3.7M6.6 6.7A17 17 0 0 0 2 12s4 6 10 6a9.6 9.6 0 0 0 4-.9" />
+                </g>
+              </svg></button></div>
           <span class="field-error" data-for="password"></span>
         </div>
         <button class="btn-primary auth-submit" type="submit">Sign in</button>
       </form>
 
       <form id="signup-form" class="auth-form" novalidate autocomplete="on" hidden>
+        <div class="auth-head">
+          <h2>Request access</h2>
+          <p>Create an account for administrator review.</p>
+        </div>
         <div class="form-group">
           <label for="su-name">Full name</label>
-          <input id="su-name" name="full_name" type="text" autocomplete="name" required />
+          <div class="input-wrap"><svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+            </svg><input id="su-name" name="full_name" type="text" autocomplete="name" required /></div>
           <span class="field-error" data-for="full_name"></span>
         </div>
         <div class="form-group">
           <label for="su-email">Corporate email</label>
-          <input id="su-email" name="email" type="email" autocomplete="email" required />
+          <div class="input-wrap"><svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg><input id="su-email" name="email" type="email" autocomplete="email" required /></div>
           <span class="field-error" data-for="email"></span>
         </div>
         <div class="form-group">
           <label for="su-password">Password</label>
-          <input id="su-password" name="password" type="password" autocomplete="new-password" required />
-          <ul class="pw-rules" id="pw-rules"></ul>
+          <div class="input-wrap"><svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg><input id="su-password" name="password" type="password" autocomplete="new-password" required /><button
+              type="button" class="pw-toggle" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path class="eye" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+                <circle class="eye" cx="12" cy="12" r="3" />
+                <g class="eye-off">
+                  <path d="M3 3l18 18" />
+                  <path
+                    d="M10.6 6.1A9.7 9.7 0 0 1 12 6c6 0 10 6 10 6a17 17 0 0 1-3.2 3.7M6.6 6.7A17 17 0 0 0 2 12s4 6 10 6a9.6 9.6 0 0 0 4-.9" />
+                </g>
+              </svg></button></div>
+          <div class="pw-meter" id="pw-meter" data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <ul class="pw-rules" id="pw-rules">
+            <li data-rule="len">12+ characters</li>
+            <li data-rule="lower">Lowercase</li>
+            <li data-rule="upper">Uppercase</li>
+            <li data-rule="digit">Digit</li>
+            <li data-rule="symbol">Symbol</li>
+          </ul>
           <span class="field-error" data-for="password"></span>
         </div>
         <div class="form-group">
           <label for="su-confirm">Confirm password</label>
-          <input id="su-confirm" name="confirm_password" type="password" autocomplete="new-password" required />
+          <div class="input-wrap"><svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg><input id="su-confirm" name="confirm_password" type="password" autocomplete="new-password"
+              required /><button type="button" class="pw-toggle" aria-label="Show password" aria-pressed="false"><svg
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path class="eye" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+                <circle class="eye" cx="12" cy="12" r="3" />
+                <g class="eye-off">
+                  <path d="M3 3l18 18" />
+                  <path
+                    d="M10.6 6.1A9.7 9.7 0 0 1 12 6c6 0 10 6 10 6a17 17 0 0 1-3.2 3.7M6.6 6.7A17 17 0 0 0 2 12s4 6 10 6a9.6 9.6 0 0 0 4-.9" />
+                </g>
+              </svg></button></div>
           <span class="field-error" data-for="confirm_password"></span>
         </div>
         <span class="field-error" data-for="_"></span>
         <button class="btn-primary auth-submit" type="submit">Request access</button>
         <p class="auth-note">New accounts are reviewed by an administrator before they can sign in.</p>
       </form>
+      <div class="auth-foot">Protected by encrypted, HttpOnly session cookies</div>
     </section>
   </main>
   <script src="auth.js"></script>

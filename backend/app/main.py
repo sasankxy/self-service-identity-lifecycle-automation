@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
@@ -12,6 +13,7 @@ from sqlalchemy.pool import NullPool
 from app.api.v1 import admin, approvals, assistant, audit_logs, auth, dashboard, governance, identities, meta, risk
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
+from app.services import nlu
 from app.services.accounts import ensure_reference_data
 
 
@@ -29,6 +31,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.redis = Redis.from_url(settings.redis_url, decode_responses=True)
         async with app.state.sessionmaker() as db:
             await ensure_reference_data(db)
+        async with app.state.sessionmaker() as db:
+            nlu.configure(await nlu.load_catalogue(db))      # NLU vocabulary = the directory's departments/apps/entitlements
+        await run_in_threadpool(nlu.warm_up)      # load NLU models once; failure only disables the NLU layer
         yield
         await app.state.redis.aclose()
         await engine.dispose()

@@ -77,6 +77,18 @@
   $('#su-password').addEventListener('input', (e) => {
     document.querySelectorAll('#pw-rules li').forEach((li) => li.classList.toggle('ok', RULES[li.dataset.rule](e.target.value)));
   });
+  // ---- UI enhancements: show/hide password + strength meter ----
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('.pw-toggle'); if (!t) return;
+    const input = t.parentElement.querySelector('input');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    t.setAttribute('aria-pressed', show); t.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
+  $('#su-password').addEventListener('input', (e) => {
+    $('#pw-meter').dataset.score = Object.values(RULES).filter((fn) => fn(e.target.value)).length;
+  });
+
   $('#signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target; clearErrors(form); clearBanner();
@@ -85,7 +97,7 @@
     busy(form, true);
     try {
       const res = await Auth.request('/auth/signup', { method: 'POST', body: data });
-      form.reset(); document.querySelectorAll('#pw-rules li').forEach((li) => li.classList.remove('ok'));
+      form.reset(); document.querySelectorAll('#pw-rules li').forEach((li) => li.classList.remove('ok')); $('#pw-meter').dataset.score = 0;
       setView('signin'); showBanner(res.message, 'success');
     } catch (err) {
       if (!(err.code === 'validation_error' && showFieldErrors(form, err.fields))) {

@@ -1,5 +1,0 @@
-# Runtime: the statistical NER needs sklearn-crfsuite (pulls in python-crfsuite).
-# Everything else (tokeniser, rules, TF-IDF, Naive Bayes, metrics) is pure standard library.
-sklearn-crfsuite>=0.5.0
-# Tests only
-pytest>=7.0

@@ -18,16 +18,22 @@ class Settings(BaseSettings):
     env: Literal["dev", "test", "prod"] = "dev"
 
     # --- infrastructure ---
-    database_url: str
+    database_url: str = "postgresql+asyncpg://identityos:identityos@localhost:5432/identityos"
     redis_url: str = "redis://localhost:6379/0"
+
+    # --- local SLM fallback (Ollama) ---
+    slm_enabled: bool = False
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5:3b"
+    slm_timeout_s: float = 25.0
 
     # --- JWT ---
     jwt_algorithm: str = "HS256"
     jwt_secret_key: str = ""            # HS* algorithms
     jwt_private_key_path: str = ""      # RS*/ES*/EdDSA: PEM private key (signing)
     jwt_public_key_path: str = ""       # RS*/ES*/EdDSA: PEM public key (verification)
-    jwt_issuer: str = "identity_admin"
-    jwt_audience: str = "identity_admin-portal"
+    jwt_issuer: str = "identityos"
+    jwt_audience: str = "identityos-portal"
     access_token_ttl_minutes: int = Field(15, ge=1, le=60)
     refresh_token_ttl_days: int = Field(7, ge=1, le=90)          # sliding window
     session_absolute_max_days: int = Field(30, ge=1, le=365)     # hard cap on a session

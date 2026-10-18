@@ -16,7 +16,7 @@ from app.core.errors import ApiError
 from app.models import (
     ApprovalRequest, Department, Identity, IdentityEntitlement, LifecycleRequest, LifecycleRequestEntitlement, RiskAssessment,
 )
-from app.services import audit, stats
+from app.services import audit, lifecycle, stats
 from app.services.accounts import Principal
 from app.services.cache import invalidate
 
@@ -70,21 +70,7 @@ async def _decide(approval_id: uuid.UUID, decision: str, body: DecisionIn, reque
     req.status = "approved" if decision == "approved" else "rejected"
 
     if decision == "approved":
-        deltas = (await db.execute(select(LifecycleRequestEntitlement).where(LifecycleRequestEntitlement.request_id == req.id))).scalars().all()
-        for d in deltas:
-            if d.action == "add":
-                stmt = pg_insert(IdentityEntitlement).values(
-                    identity_id=ident.id, entitlement_id=d.entitlement_id, status="pending", source=f"request:{req.ref_no}", granted_by=uuid.UUID(actor.id),
-                    expires_at=now + timedelta(hours=req.duration_hours) if req.duration_hours else None)
-                await db.execute(stmt.on_conflict_do_update(constraint="uq_identity_entitlements_pair",
-                                                             set_={"status": "pending", "source": f"request:{req.ref_no}", "expires_at": stmt.excluded.expires_at}))
-            else:
-                await db.execute(IdentityEntitlement.__table__.update().where(
-                    IdentityEntitlement.identity_id == ident.id, IdentityEntitlement.entitlement_id == d.entitlement_id).values(status="revoked"))
-        if req.request_type == "mover" and req.to_department_id:
-            ident.department_id = req.to_department_id
-        if req.request_type == "leaver":
-            await db.execute(IdentityEntitlement.__table__.update().where(IdentityEntitlement.identity_id == ident.id).values(status="revoked"))
+        await lifecycle.apply_effects(db, req, ident, uuid.UUID(actor.id), now)
 
     sev = "medium" if req.request_type in ("privilege", "leaver") else "info"
     audit.record(db, request, f"approval.{'approve' if decision == 'approved' else 'reject'}", actor_id=actor.id, actor_label=actor.email,
