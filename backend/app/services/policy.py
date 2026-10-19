@@ -19,23 +19,33 @@ Rules for an entitlement being ADDED (first match wins):
     low/medium risk and no `requires_approval` flag      -> AUTO
     anything else                                        -> APPROVAL
 Removals (revocations, and entitlements a move leaves behind) are always AUTO.
+
+Offboarding (kind "leaver") is ALWAYS high risk: it deactivates the account and revokes everything, so the outcome is APPROVAL
+whoever asks and whatever the person's risk score. Nothing is created when the person is already terminated or an offboarding
+request is already open.
+
+Requester history (a risk factor, deterministic): an otherwise-AUTO request that would ADD access is sent to a person when its
+requester had REJECTED_LIMIT or more requests rejected in the last REJECTED_WINDOW_DAYS days, or has already submitted
+BURST_LIMIT or more requests in the last BURST_WINDOW_MINUTES minutes. Pure removals are never escalated (they reduce risk).
 """
 from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (AccessProfile, AccessProfileEntitlement, Department, Entitlement, GovernancePolicy, Identity,
-                        IdentityEntitlement)
+                        IdentityEntitlement, LifecycleRequest)
 from app.services import stats
 
 AUTO, APPROVAL, DENY, CLARIFY, NOOP = "auto", "approval", "deny", "clarify", "noop"
 _SEVERITY = {NOOP: 0, AUTO: 1, APPROVAL: 2, DENY: 3, CLARIFY: 4}
-KINDS = ("mover", "access_request", "access_revocation")
+KINDS = ("mover", "access_request", "access_revocation", "leaver")
+REJECTED_LIMIT, REJECTED_WINDOW_DAYS = 2, 30
+BURST_LIMIT, BURST_WINDOW_MINUTES = 10, 60
 
 
 @dataclass
@@ -65,6 +75,7 @@ class Plan:
     profile_options: list[AccessProfile] = field(default_factory=list)   # when the target department has several
     from_profile_name: str | None = None
     keeps: list[str] = field(default_factory=list)          # access the person keeps through a move
+    choices: list[dict] = field(default_factory=list)       # structured follow-up questions: {"ask", "options", "app"?}, for conversation memory
 
     @property
     def moves_department(self) -> bool:
@@ -122,11 +133,14 @@ def _line(e: Entitlement, action: str, decision: str, reason: str) -> Line:
 
 async def build_plan(db: AsyncSession, *, kind: str, identity: Identity, to_dept: Department | None = None,
                      applications: list[str] | None = None, roles: list[str] | None = None,
-                     effective_date: date | None = None, date_text: str | None = None, access_profile: AccessProfile | None = None) -> Plan:
+                     effective_date: date | None = None, date_text: str | None = None, access_profile: AccessProfile | None = None,
+                     requester_id: uuid.UUID | None = None) -> Plan:
     assert kind in KINDS
     from_dept = await db.get(Department, identity.department_id) if identity.department_id else None
     plan = Plan(kind=kind, identity=identity, from_dept=from_dept, to_dept=to_dept, effective_date=effective_date)
     held = await _held(db, identity.id)
+    if kind == "leaver":
+        return await _leaver_plan(db, plan, held, date_text)
 
     # ---- hard stops and missing information
     if identity.lifecycle_state in ("leaver", "terminated") and kind != "access_revocation":
@@ -157,6 +171,7 @@ async def build_plan(db: AsyncSession, *, kind: str, identity: Identity, to_dept
         elif len(profs) > 1:
             plan.profile_options = profs
             plan.questions.append(f"{to_dept.name} has several access profiles ({', '.join(p.name for p in profs)}). Which one should {identity.full_name} get?")
+            plan.choices.append({"ask": "access_profile", "options": [{"value": p.name, "label": p.name, "aliases": []} for p in profs]})
         else:
             plan.notes.append(f"{to_dept.name} has no access profile defined, so no standard access is added.")
         if plan.profile:
@@ -188,8 +203,10 @@ async def build_plan(db: AsyncSession, *, kind: str, identity: Identity, to_dept
             wanted += ents
         else:
             plan.questions.append(f"{app} has several entitlements ({', '.join(e.name for e in ents)}). Which one do you need?")
+            plan.choices.append({"ask": "access_roles", "app": app, "options": [{"value": e.name, "label": e.name, "aliases": []} for e in ents]})
     if kind in ("access_request", "access_revocation") and not wanted and not plan.questions and not plan.notes:
         plan.questions.append("Which application or entitlement is this about?")
+    explicit_ids = {e.id for e in wanted}          # what the person actually asked for (profile access is implied, not asked)
     wanted = list({e.id: e for e in profile_ents + wanted}.values())
 
     # ---- lines
@@ -201,7 +218,7 @@ async def build_plan(db: AsyncSession, *, kind: str, identity: Identity, to_dept
     else:
         adds = [e for e in wanted if e.id not in held]
         for e in wanted:
-            if e.id in held:
+            if e.id in held and e.id in explicit_ids:
                 plan.notes.append(f"{identity.full_name} already holds {e.name}.")
         removes: list[Entitlement] = []
         if kind == "mover" and plan.moves_department and from_dept:
@@ -232,6 +249,62 @@ async def build_plan(db: AsyncSession, *, kind: str, identity: Identity, to_dept
     if plan.decision == AUTO:
         seen = ["Everything requested is within policy."] + [f"{l.name}: {l.reason}" for l in plan.adds[:6]]
     plan.reasons = seen
+    if plan.decision == AUTO and plan.adds:
+        flags = await requester_flags(db, requester_id)
+        if flags:
+            plan.decision = APPROVAL
+            plan.reasons = [f"Everything requested is within policy, but {'; and '.join(flags)}, so a person must approve it."]
+    return plan
+
+
+async def requester_flags(db: AsyncSession, requester_id: uuid.UUID | None) -> list[str]:
+    """Risk factors from the requester's own recent history (empty when there is nothing unusual)."""
+    if not requester_id:
+        return []
+    now = datetime.now(timezone.utc)
+    rejected = (await db.execute(select(func.count()).select_from(LifecycleRequest).where(
+        LifecycleRequest.requested_by == requester_id, LifecycleRequest.status == "rejected",
+        LifecycleRequest.created_at >= now - timedelta(days=REJECTED_WINDOW_DAYS)))).scalar_one()
+    burst = (await db.execute(select(func.count()).select_from(LifecycleRequest).where(
+        LifecycleRequest.requested_by == requester_id,
+        LifecycleRequest.created_at >= now - timedelta(minutes=BURST_WINDOW_MINUTES)))).scalar_one()
+    flags = []
+    if rejected >= REJECTED_LIMIT:
+        flags.append(f"{rejected} of the requester's requests were rejected in the last {REJECTED_WINDOW_DAYS} days")
+    if burst >= BURST_LIMIT:
+        flags.append(f"the requester has already submitted {burst} requests in the last hour")
+    return flags
+
+
+async def _open_leaver_request(db: AsyncSession, identity_id: uuid.UUID) -> LifecycleRequest | None:
+    rows = (await db.execute(select(LifecycleRequest).where(
+        LifecycleRequest.identity_id == identity_id, LifecycleRequest.request_type == "leaver",
+        LifecycleRequest.status.in_(("pending_approval", "approved"))).order_by(LifecycleRequest.created_at.desc()))).scalars().all()
+    for r in rows:      # pending, or approved-and-scheduled but not yet applied
+        if r.status == "pending_approval" or ((r.payload or {}).get("scheduled") and not (r.payload or {}).get("applied")):
+            return r
+    return None
+
+
+async def _leaver_plan(db: AsyncSession, plan: Plan, held: dict[uuid.UUID, Entitlement], date_text: str | None) -> Plan:
+    ident = plan.identity
+    if ident.lifecycle_state == "terminated":
+        plan.decision = NOOP
+        plan.notes.append(f"{ident.full_name} is already terminated; there is nothing left to offboard.")
+        return plan
+    open_req = await _open_leaver_request(db, ident.id)
+    if open_req:
+        plan.decision = NOOP
+        plan.notes.append(f"An offboarding request for {ident.full_name} is already open (REQ-{open_req.ref_no}).")
+        return plan
+    if date_text and not plan.effective_date:
+        plan.questions.append(f"“{date_text}” is not a fixed date. Which date should the offboarding take effect on?")
+    plan.lines = [_line(e, "remove", AUTO, "Revoked as part of offboarding.") for e in sorted(held.values(), key=lambda x: x.name)]
+    if plan.questions:
+        plan.decision = CLARIFY
+        return plan
+    plan.decision = APPROVAL        # always: deprovisioning is irreversible enough that a person must decide
+    plan.reasons = ["Offboarding deactivates the account and revokes all access. It is always treated as high risk, so a person must approve it."]
     return plan
 
 

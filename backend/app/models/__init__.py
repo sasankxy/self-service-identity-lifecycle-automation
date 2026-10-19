@@ -4,6 +4,7 @@ from app.models.directory import (  # noqa: F401
     IdentityConnector, IdentityEntitlement,
 )
 from app.models.governance import (  # noqa: F401
-    AuditLog, CertificationCampaign, CertificationItem, ComplianceControl, ComplianceFramework, GovernancePolicy,
+    AuditLog, CertificationCampaign, CertificationItem, ComplianceControl, ComplianceFramework, GovernanceFinding,
+    GovernancePolicy, GovernanceScanRun,
 )
 from app.models.workflow import ApprovalRequest, LifecycleRequest, LifecycleRequestEntitlement, RiskAssessment  # noqa: F401

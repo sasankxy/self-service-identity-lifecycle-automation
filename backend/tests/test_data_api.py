@@ -607,7 +607,7 @@ async def test_slm_suggestion_is_clickable_text_never_an_action(as_role):
     slm.set_client(_FakeSLM(out))
     try:
         c = await as_role("iam_admin")
-        r = await _ask(c, "blorp the invoice people need whatever")
+        r = await _ask(c, "blorp the invoice people need whatever access")
         t = _texts(r)
         assert r["nlu"]["slm_used"] is True and "can only suggest" in t
         assert "Which role does he need?" not in t                      # suggestion is complete -> the model's own question is suppressed
@@ -631,6 +631,7 @@ def test_slm_sanitize_rejects_garbage_and_unknown_intents():
     assert slm.sanitize("nope", cat) is None
     assert slm.sanitize({"intent": "DELETE_EVERYTHING"}, cat) is None
     assert slm.sanitize({"intent": "UNKNOWN", "clarification_question": None}, cat) is None
+    assert slm.sanitize({"intent": "UNKNOWN", "clarification_question": "Personal or professional?"}, cat) is None   # 'unclear' is dropped
 
 
 # ------------------------------------------------------------------ a move provisions the target department's profile
@@ -677,3 +678,162 @@ async def test_plan_endpoint_is_read_only_and_rejects_foreign_profiles(as_role, 
     bad = await c.post(f"{API}/assistant/plan", {**pick["proposal"], "access_profile": "Financial Analyst"})   # not an Engineering profile
     assert bad.status_code == 422
     assert await scalar(app, "select count(*) from lifecycle_requests") == before                 # planning creates nothing
+
+
+# ------------------------------------------------------------------ conversation memory
+import re as _re
+import uuid as _uuid
+
+
+async def _chat(c, q, sid):
+    r = await c.post(f"{API}/assistant/query", {"query": q, "session_id": sid})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _sid():
+    return "t-" + _uuid.uuid4().hex
+
+
+async def test_memory_answers_the_question_the_assistant_just_asked(as_role, app):
+    """The exact failure from the demo transcript: 'which AWS entitlement?' -> 'sandbox'."""
+    name, sid = await _low_risk(app, "Support"), _sid()
+    c = await as_role("iam_admin")
+    r1 = await _chat(c, f"Give {name} access to AWS", sid)
+    assert "Which one do you need" in _texts(r1) and _action(r1) is None
+    r2 = await _chat(c, "sandbox", sid)
+    assert r2["nlu"]["method"] == "conversation_memory"
+    act = _action(r2)
+    assert act and "AWS Staging Sandbox" in _texts(r2) and act["proposal"]["roles"] == ["AWS Staging Sandbox"] and act["proposal"]["applications"] == []
+    r3 = await _chat(c, "sandbox", sid)                                  # nothing pending any more -> not treated as an answer again
+    assert r3["nlu"] is None or r3["nlu"].get("context") != "answer"
+
+
+async def test_memory_ordinals_and_ambiguous_answers(as_role, app):
+    name, sid = await _low_risk(app, "Support"), _sid()
+    c = await as_role("iam_admin")
+    await _chat(c, f"Give {name} access to AWS", sid)
+    r = await _chat(c, "aws", sid)                                       # matches both -> asks again, still remembers
+    assert "more than one" in _texts(r)
+    r = await _chat(c, "the second one", sid)
+    assert "AWS Staging Sandbox" in _texts(r) and _action(r)
+
+
+async def test_memory_missing_department_then_answer(as_role, app):
+    name, sid = await _low_risk(app, "Sales"), _sid()
+    c = await as_role("iam_admin")
+    r1 = await _chat(c, f"Move {name}", sid)
+    assert "Which department" in _texts(r1)
+    r2 = await _chat(c, "finance", sid)
+    act = _action(r2)
+    assert act and act["proposal"]["to_department"] == "Finance" and "Financial Analyst" in _texts(r2)
+
+
+async def test_memory_disambiguates_between_people(as_role):
+    sid = _sid()
+    c = await as_role("iam_admin")
+    r1 = await _chat(c, "What access does Aditya have?", sid)
+    assert "identities match" in _texts(r1)
+    first_id = _re.search(r"· (DEMO-\d+)", _texts(r1)).group(1)
+    r2 = await _chat(c, first_id, sid)
+    assert any(b["type"] == "kv" and any(k == "Email" for k, _ in b["items"]) for b in r2["blocks"]) and "Current access" in _texts(r2)
+
+
+async def test_memory_pronoun_refers_to_the_last_person_shown(as_role, app):
+    name, sid = await _low_risk(app, "Sales"), _sid()
+    c = await as_role("iam_admin")
+    await _chat(c, f"What access does {name} have?", sid)
+    r = await _chat(c, "Move him to Marketing", sid)
+    assert r["nlu"]["context"] == "pronoun" and name in _texts(r)
+    other_sid = _sid()
+    other = await _chat(c, "Move him to Marketing", other_sid)           # a different chat has no such memory
+    assert "pronoun" in _texts(other)                                   # asks who "him" is ...
+    again = await _chat(c, name, other_sid)                             # ... and remembers it asked: the name completes the request
+    assert again["nlu"]["method"] == "conversation_memory" and _action(again) and "Marketing" in _texts(again)
+
+
+async def test_memory_new_request_beats_pending_and_cancel_clears_it(as_role, app):
+    a, b, sid = await _low_risk(app, "Support"), await _low_risk(app, "Sales"), _sid()
+    c = await as_role("iam_admin")
+    await _chat(c, f"Give {a} access to AWS", sid)
+    r = await _chat(c, f"What access does {b} have?", sid)               # a complete new request is never swallowed as an "answer"
+    assert b in _texts(r) and "Current access" in _texts(r)
+    await _chat(c, f"Give {a} access to AWS", sid)
+    assert "dropped" in _texts(await _chat(c, "never mind", sid))
+    assert "dropped" not in _texts(await _chat(c, "sandbox", sid))
+
+
+async def test_memory_is_per_user_and_typing_yes_never_executes(as_role, app):
+    name, sid = await _low_risk(app, "Support"), _sid()
+    admin = await as_role("iam_admin")
+    await _chat(admin, f"Give {name} access to AWS", sid)
+    other = await as_role("auditor")                                     # same session id, different user
+    r = await _chat(other, "sandbox", sid)
+    assert r["nlu"] is None or r["nlu"].get("method") != "conversation_memory"
+    plan = await _chat(admin, "sandbox", sid)
+    assert _action(plan)
+    before = await scalar(app, "select count(*) from lifecycle_requests")
+    for word in ("yes", "confirm", "do it", "approve"):
+        await _chat(admin, word, sid)
+    assert await scalar(app, "select count(*) from lifecycle_requests") == before
+
+
+def test_memory_matcher_unit():
+    from app.services import memory
+    aws = [{"value": "AWS AdministratorAccess (Prod-US-East)", "label": "AWS AdministratorAccess (Prod-US-East)", "aliases": []},
+           {"value": "AWS Staging Sandbox", "label": "AWS Staging Sandbox", "aliases": []}]
+    assert memory.match_option(aws, "give me the sandbox one")[1][0]["value"] == "AWS Staging Sandbox"
+    assert memory.match_option(aws, "admin")[1][0]["value"].startswith("AWS Admin")
+    assert memory.match_option(aws, "last")[1][0]["value"] == "AWS Staging Sandbox"
+    assert memory.match_option(aws, "banana")[0] == "none" and memory.match_option(aws, "aws")[0] == "many"
+    assert memory.is_cancel("Never mind!") and not memory.is_cancel("sandbox")
+
+
+# ------------------------------------------------------------------ scope gate: off-topic never reaches the model
+async def test_off_topic_questions_are_refused_without_calling_the_slm(as_role):
+    from app.services import slm
+    fake = _FakeSLM({"intent": "ACCESS_REQUEST", "person": "X", "source_department": None, "target_department": None, "applications": [],
+                     "question": "which?", "rephrase": "Give X access to Zoom"})
+    slm.set_client(fake)
+    try:
+        c = await as_role("iam_admin")
+        for q in ("how are you", "what is my time table today", "write me a poem about cats", "what's the weather in Paris", "tell me a joke",
+                  "who won the cricket match", "hello"):
+            r = await _ask(c, q)
+            assert r["nlu"] == {"intent": "OUT_OF_SCOPE"} and "only help with directory and access" in _texts(r), q
+        assert fake.calls == 0
+        r = await _ask(c, "blorp the invoice people need whatever access")      # in scope, but not understood -> the model may help
+        assert fake.calls == 1 and r["nlu"]["slm_used"] is True
+    finally:
+        slm.set_client(None)
+
+
+async def test_scope_gate_does_not_block_real_requests(as_role, app):
+    from app.services import scope
+    name = await _low_risk(app, "Sales")
+    c = await as_role("iam_admin")
+    for q in (f"What access does {name} have?", "show pending approvals", "show high-risk identities", f"Move {name} to Marketing", "Kai Chen"):
+        assert (await _ask(c, q))["nlu"] != {"intent": "OUT_OF_SCOPE"}, q
+    assert scope.in_scope("who can see the finance reports") and scope.in_scope("is zoom included") and not scope.in_scope("how are you")
+
+
+# ------------------------------------------------------------------ voice: misheard names
+async def test_voice_misheard_name_offers_closest_directory_names(as_role):
+    """Spoken 'Kai Chan' (really Kai Chen): suggestions only for input_mode=voice; typed text keeps the exact behaviour."""
+    c = await as_role("auditor")
+    q = "what access does Kai Chan have to Slack?"
+    typed = await _chat(c, q, _sid())
+    assert any("couldn't find a matching identity" in b.get("text", "") for b in typed["blocks"])
+    assert not any(b["type"] == "action" for b in typed["blocks"])
+
+    sid = _sid()
+    r = await c.post(f"{API}/assistant/query", {"query": q, "session_id": sid, "input_mode": "voice"})
+    assert r.status_code == 200, r.text
+    blocks = r.json()["blocks"]
+    opts = [b["action"] for b in blocks if b["type"] == "action"]
+    assert "send:Kai Chen" in opts and len(opts) <= 4                      # at most 4 suggestions
+
+    picked = await _chat(c, "Kai Chen", sid)                               # what the suggestion button sends
+    assert any(b["type"] == "kv" for b in picked["blocks"])                # resolved to the real identity
+
+    assert (await c.post(f"{API}/assistant/query", {"query": q, "input_mode": "bogus"})).status_code == 422

@@ -6,7 +6,9 @@ from app.models.governance import AuditLog
 _FORBIDDEN = ("password", "token", "secret", "hash", "authorization", "cookie")
 
 
-def client_ip(request: Request) -> str | None:
+def client_ip(request: Request | None) -> str | None:
+    if request is None:
+        return None
     if request.app.state.settings.trust_proxy_headers:
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
@@ -19,11 +21,12 @@ _CATEGORY = {"auth": "login", "user": "access_change", "approval": "approval", "
 
 
 def record(
-    db: AsyncSession, request: Request, action: str, *, actor_id=None, actor_label: str = "anonymous",
+    db: AsyncSession, request: Request | None, action: str, *, actor_id=None, actor_label: str = "anonymous",
     target_type: str | None = None, target_id=None, severity: str = "info", outcome: str = "success",
     details: dict | None = None, target_label: str | None = None, category: str | None = None,
 ) -> None:
-    """Stage an audit row; the caller commits (so it shares the transaction of the change)."""
+    """Stage an audit row; the caller commits (so it shares the transaction of the change).
+    `request` is None for system events (scheduler, mover re-check): no IP / user agent is recorded."""
     safe = {k: v for k, v in (details or {}).items() if not any(f in k.lower() for f in _FORBIDDEN)}
     ip = client_ip(request)
     db.add(AuditLog(
@@ -32,5 +35,5 @@ def record(
         target_label=(target_label or (details or {}).get("email") or None),
         category=category or _CATEGORY.get(action.split(".")[0], "system"),
         ip_address=ip if ip and ip.replace(".", "").replace(":", "").isalnum() else None,
-        user_agent=(request.headers.get("user-agent") or "")[:300] or None, details=safe,
+        user_agent=((request.headers.get("user-agent") or "")[:300] or None) if request is not None else None, details=safe,
     ))

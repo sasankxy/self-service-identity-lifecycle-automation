@@ -51,8 +51,8 @@ def _pick(value, allowed: list[str]) -> str | None:
 
 def sanitize(raw: dict | None, cat: dict) -> dict | None:
     """Validate the model output against the catalogue and derive a canonical rephrasing (built by us, not the model)."""
-    if not isinstance(raw, dict) or raw.get("intent") not in INTENTS or raw["intent"] == "UNKNOWN" and not raw.get("clarification_question"):
-        return None
+    if not isinstance(raw, dict) or raw.get("intent") not in INTENTS or raw["intent"] == "UNKNOWN":
+        return None          # "unclear" is never worth showing: the user gets the normal help message instead
     person = raw.get("person") if isinstance(raw.get("person"), str) and 0 < len(raw["person"].strip()) <= 80 else None
     src, tgt = _pick(raw.get("source_department"), cat["departments"]), _pick(raw.get("target_department"), cat["departments"])
     apps = [a for a in (_pick(x, cat["applications"]) for x in raw.get("applications") or []) if a]

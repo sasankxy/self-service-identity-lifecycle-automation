@@ -10,7 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Identity, IdentityEntitlement, LifecycleRequest, LifecycleRequestEntitlement
 
 
-async def apply_effects(db: AsyncSession, req: LifecycleRequest, ident: Identity, granted_by: uuid.UUID | None, now: datetime) -> None:
+async def apply_effects(db: AsyncSession, req: LifecycleRequest, ident: Identity, granted_by: uuid.UUID | None, now: datetime,
+                        today: date | None = None) -> None:
+    today = today or now.date()
+    if req.request_type == "leaver" and req.effective_date and req.effective_date > today:
+        # Approved ahead of the leaving date: the person is a leaver from now on, access is revoked on the date (apply_due_requests).
+        ident.lifecycle_state, ident.end_date = "leaver", req.effective_date
+        req.payload = {**(req.payload or {}), "scheduled": True, "applied": False}
+        return
     deltas = (await db.execute(select(LifecycleRequestEntitlement).where(LifecycleRequestEntitlement.request_id == req.id))).scalars().all()
     for d in deltas:
         if d.action == "add":
@@ -27,8 +34,12 @@ async def apply_effects(db: AsyncSession, req: LifecycleRequest, ident: Identity
         pid = (req.payload or {}).get("access_profile_id")
         if pid:
             ident.access_profile_id = uuid.UUID(pid)
+        from app.services import governance_scan     # lazy: governance_scan imports this module
+        await governance_scan.recheck_identity(db, ident, reason=f"department move applied (REQ-{req.ref_no})")     # mover-event trigger
     if req.request_type == "leaver":
         await db.execute(IdentityEntitlement.__table__.update().where(IdentityEntitlement.identity_id == ident.id).values(status="revoked"))
+        ident.lifecycle_state = "terminated"
+        ident.end_date = ident.end_date or req.effective_date or today
 
 
 async def apply_due_requests(db: AsyncSession, today: date | None = None) -> int:
@@ -42,13 +53,14 @@ async def apply_due_requests(db: AsyncSession, today: date | None = None) -> int
         .with_for_update(skip_locked=True))).scalars().all()
     for req in rows:
         ident = await db.get(Identity, req.identity_id)
-        await apply_effects(db, req, ident, None, now)
+        await apply_effects(db, req, ident, None, now, today=today)
         req.payload = {**req.payload, "applied": True, "applied_at": now.isoformat()}
     await db.commit()
     return len(rows)
 
 
-async def execute_plan(db: AsyncSession, request, actor, plan, text_in: str) -> dict:
+async def execute_plan(db: AsyncSession, request, actor, plan, text_in: str, *, via: str = "assistant", justification: str | None = None,
+                       audit_action: str | None = None) -> dict:
     """Persist a policy Plan as a lifecycle request and (for AUTO) apply it. Never called for DENY/CLARIFY/NOOP.
     One transaction: request + deltas + approval row + (effects) + audit, or nothing."""
     from app.models import ApprovalRequest, RiskAssessment
@@ -58,13 +70,13 @@ async def execute_plan(db: AsyncSession, request, actor, plan, text_in: str) -> 
     ident, auto = plan.identity, plan.decision == policy.AUTO
     due = (plan.effective_date or today) <= today
     req = LifecycleRequest(
-        identity_id=ident.id, request_type="mover" if plan.kind == "mover" else "privilege",
+        identity_id=ident.id, request_type={"mover": "mover", "leaver": "leaver"}.get(plan.kind, "privilege"),
         status="pending_approval" if not auto else "approved",
         from_department_id=plan.from_dept.id if plan.from_dept else None,
         to_department_id=plan.to_dept.id if plan.kind == "mover" and plan.to_dept else None,
         requested_by=uuid.UUID(actor.id), requester_name=actor.full_name, effective_date=plan.effective_date,
-        justification=f"Requested via AI assistant: {text_in[:400]}",
-        payload={"source": "assistant", "text": text_in[:500], "policy": {"decision": plan.decision, "reasons": plan.reasons},
+        justification=justification or f"Requested via AI assistant: {text_in[:400]}",
+        payload={"source": via, "text": text_in[:500], "policy": {"decision": plan.decision, "reasons": plan.reasons},
                  **({"access_profile_id": str(plan.profile.id)} if plan.profile else {}),
                  **({"scheduled": True, "applied": False} if auto and not due else {})})
     db.add(req)
@@ -86,7 +98,7 @@ async def execute_plan(db: AsyncSession, request, actor, plan, text_in: str) -> 
     if auto and due:
         await apply_effects(db, req, ident, None, now)
         applied = True
-    audit.record(db, request, "assistant.request_auto_approved" if auto else "assistant.request_submitted", actor_id=actor.id,
+    audit.record(db, request, audit_action or ("assistant.request_auto_approved" if auto else "assistant.request_submitted"), actor_id=actor.id,
                  actor_label=actor.email, target_type="identity", target_id=ident.id, target_label=ident.email,
                  severity="info" if auto else "medium", category="provisioning",
                  details={"request": f"REQ-{req.ref_no}", "kind": plan.kind, "decision": plan.decision, "reasons": plan.reasons[:5],

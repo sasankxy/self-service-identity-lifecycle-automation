@@ -318,10 +318,13 @@
   }
 
   /* ───────────────────────── audit trail ───────────────────────── */
-  const AUD = { category: '', severity: '', q: '', offset: 0, limit: 25, total: 0 };
+  const AUD = { category: '', severity: '', q: '', actor: '', action: '', since: '', until: '', offset: 0, limit: 25, total: 0 };
   const SEV = { critical: ['crit', 'CRITICAL'], high: ['high', 'HIGH'], medium: ['med', 'MEDIUM'], low: ['info', 'LOW'], info: ['info', 'INFO'] };
   const OUTCOME = { success: 'success', pending: 'pending', flagged: 'warning', blocked: 'danger', failure: 'danger', denied: 'danger' };
-  const audQuery = (extra = {}) => { const p = new URLSearchParams(extra); if (AUD.category) p.set('category', AUD.category); if (AUD.severity) p.set('severity', AUD.severity); if (AUD.q) p.set('q', AUD.q); return p; };
+  const audQuery = (extra = {}) => { const p = new URLSearchParams(extra); if (AUD.category) p.set('category', AUD.category); if (AUD.severity) p.set('severity', AUD.severity); if (AUD.q) p.set('q', AUD.q);
+    if (AUD.actor) p.set('actor', AUD.actor); if (AUD.action) p.set('action', AUD.action);
+    if (AUD.since) p.set('since', new Date(AUD.since + 'T00:00:00').toISOString()); if (AUD.until) p.set('until', new Date(AUD.until + 'T23:59:59').toISOString());
+    return p; };
   async function loadAudit() {
     const tb = $('audit-body'); tb.innerHTML = stateRow(6, 'Loading…');
     try {
@@ -348,11 +351,33 @@
       const n = g.sod_conflicts.length, sc = $('gov-sod-count'); sc.textContent = n ? `${n} Conflict${n === 1 ? '' : 's'}` : 'No conflicts'; sc.className = `status-pill status-pill--${n ? 'danger' : 'success'}`;
       $('gov-sod').innerHTML = n ? g.sod_conflicts.map((c) => `<li class="sod-item"><div class="sod-body"><div class="sod-title">${esc(c.policy)}</div><div class="sod-user mono">${esc(c.identity.email)}</div></div>
         <button class="btn-danger btn-xs" data-view="${c.identity.id}" title="${esc(c.entitlements.join(' + '))}">Review</button></li>`).join('') : '<li class="pu-state">No segregation-of-duties conflicts detected.</li>';
+      loadFindings();
       $('gov-connectors').innerHTML = g.connectors.map((c) => `<li class="system-item"><span class="system-name">${esc(c.name)}</span>${connPill(c.status)}</li>`).join('') || '<li class="pu-state">None.</li>';
     } catch (e) {
       ['gov-frameworks', 'gov-campaigns'].forEach((id) => { $(id).innerHTML = `<div class="pu-state pu-state--error">${esc(e.message)}</div>`; });
       $('gov-sod').innerHTML = `<li class="pu-state pu-state--error">${esc(e.message)}</li>`; $('gov-connectors').innerHTML = '';
     }
+  }
+  const GOVF = { kind: '' };
+  const FSEV = { critical: ['danger', 'Critical'], high: ['danger', 'High'], medium: ['warning', 'Medium'], low: ['neutral', 'Low'] };
+  const FRULE = { leaver_with_access: 'Leaver with access', expired_still_active: 'Expired but active', dormant_account: 'Dormant', no_owner: 'No owner',
+    manager_departed: 'Manager departed', excess_access: 'Privilege creep' };
+  async function loadFindings() {
+    const ul = $('gov-findings'); if (!ul) return;
+    try {
+      const d = await api(`/governance/findings?limit=50${GOVF.kind ? `&kind=${GOVF.kind}` : ''}`);
+      const c = d.counts, pill = $('gov-findings-count');
+      pill.textContent = c.open ? `${c.open} open${c.critical + c.high ? ` · ${c.critical + c.high} high+` : ''}` : 'All clear';
+      pill.className = `status-pill status-pill--${c.critical + c.high ? 'danger' : c.open ? 'warning' : 'success'}`;
+      const ls = d.last_scan;
+      $('gov-scan-meta').textContent = ls ? `Last scan ${timeAgo(ls.finished_at)} (${ls.trigger}) · ${ls.identities_scanned} identities · ${c.orphan} orphaned, ${c.creep} creep` : 'No scan has run yet. Use “Scan now”.';
+      ul.innerHTML = d.items.length ? d.items.map((f) => { const [cls, lbl] = FSEV[f.severity] || FSEV.low;
+        return `<li class="sod-item finding-item"><div class="sod-body"><div class="sod-title"><span class="status-pill status-pill--${cls}">${lbl}</span>${esc(f.title)}</div>
+          <div class="finding-meta"><span class="mono">${esc(f.identity.email)}</span> · ${esc(FRULE[f.rule] || f.rule)}${f.identity.department ? ' · ' + esc(f.identity.department) : ''} · detected ${timeAgo(f.first_detected_at)}</div></div>
+          <div class="finding-actions"><button class="btn-secondary btn-xs" data-view="${f.identity.id}">Review</button>
+          ${can('governance:manage') ? `<button class="btn-secondary btn-xs" data-dismiss-finding="${f.id}">Dismiss</button>` : ''}</div></li>`; }).join('')
+        : '<li class="pu-state">No open findings. The scheduler re-checks the directory periodically.</li>';
+    } catch (e) { ul.innerHTML = `<li class="pu-state pu-state--error">${esc(e.message)}</li>`; }
   }
   window.openCampaign = async function () {
     try {
@@ -380,6 +405,7 @@
           if (b.action === 'open-onboard') return openOnboard(b.prefill);
           if (b.action.startsWith('nav:')) return navigateTo(b.action.slice(4));
           if (b.action.startsWith('prompt:')) return injectPrompt(b.action.slice(7));
+          if (b.action.startsWith('send:')) { injectPrompt(b.action.slice(5)); return $('send-btn').click(); }   // a suggestion button answers the assistant's question
           if (b.action === 'replan') {                      // re-plan with the chosen option; read-only
             el.disabled = true;
             try { const r = await api('/assistant/plan', { method: 'POST', body: b.proposal }); el.after(renderBlocks(r.blocks)); }
@@ -402,14 +428,17 @@
   function initChat() {
     const input = $('chat-input'), box = $('chat-messages'); if (!input || !box) return;
     welcomeHtml = box.innerHTML;
+    const newSession = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+    let chatSession = newSession();     // the server remembers the last question / person per session
     const bubble = (cls, node) => { const d = document.createElement('div'); d.className = `chat-bubble chat-bubble--${cls}`; d.append(node); box.appendChild(d); box.scrollTop = box.scrollHeight; return d; };
     async function send() {
       const text = input.value.trim(); if (!text) return;
       box.querySelector('.chat-welcome')?.remove();
+      const mode = input.dataset.mode === 'voice' ? 'voice' : 'text'; delete input.dataset.mode;   // set by voice.js while the text is an unedited transcript
       bubble('user', document.createTextNode(text)); input.value = ''; input.style.height = 'auto';
       const wait = bubble('bot', document.createTextNode('Looking that up…'));
       try {
-        const r = await api('/assistant/query', { method: 'POST', body: { query: text } });
+        const r = await api('/assistant/query', { method: 'POST', body: { query: text, session_id: chatSession, input_mode: mode } });
         const out = renderBlocks(r.blocks); const src = document.createElement('div'); src.className = 'kpi-subtext'; src.style.marginTop = '.5rem'; src.textContent = r.source; out.appendChild(src);
         wait.replaceChildren(out);
       } catch (e) { wait.textContent = `Request failed: ${e.message}`; }
@@ -418,7 +447,7 @@
     $('send-btn').addEventListener('click', send);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
     input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 100) + 'px'; });
-    $('new-chat-btn').addEventListener('click', () => { box.innerHTML = welcomeHtml; });
+    $('new-chat-btn').addEventListener('click', () => { box.innerHTML = welcomeHtml; chatSession = newSession(); });
   }
   async function loadSaved() {
     const ul = $('chat-history');
@@ -448,6 +477,16 @@
     $('audit-event-filter').onchange = (e) => { AUD.category = e.target.value; AUD.offset = 0; loadAudit(); };
     $('audit-severity-filter').onchange = (e) => { AUD.severity = e.target.value; AUD.offset = 0; loadAudit(); };
     $('audit-search').addEventListener('input', debounce((e) => { AUD.q = e.target.value.trim(); AUD.offset = 0; loadAudit(); }));
+    $('audit-actor').addEventListener('input', debounce((e) => { AUD.actor = e.target.value.trim(); AUD.offset = 0; loadAudit(); }));
+    $('audit-action').addEventListener('input', debounce((e) => { AUD.action = e.target.value.trim(); AUD.offset = 0; loadAudit(); }));
+    $('audit-since').onchange = (e) => { AUD.since = e.target.value; AUD.offset = 0; loadAudit(); };
+    $('audit-until').onchange = (e) => { AUD.until = e.target.value; AUD.offset = 0; loadAudit(); };
+    $('gov-finding-kind').onchange = (e) => { GOVF.kind = e.target.value; loadFindings(); };
+    $('gov-scan-now').onclick = async (e) => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = 'Scanning…';
+      try { const r = await api('/governance/scan', { method: 'POST' }); showToast(`Scan done: ${r.opened} new, ${r.resolved} resolved, ${r.open_total} open.`, 'success'); await loadFindings(); }
+      catch (err) { showToast(err.message, 'danger'); } finally { b.disabled = false; b.textContent = 'Scan now'; }
+    };
     $('audit-prev').onclick = () => { AUD.offset = Math.max(0, AUD.offset - AUD.limit); loadAudit(); };
     $('audit-next').onclick = () => { AUD.offset += AUD.limit; loadAudit(); };
     $('audit-export').onclick = () => download(`/audit-logs/export?${audQuery()}`, 'audit-log.csv');
@@ -466,7 +505,15 @@
       } finally { btn.disabled = false; }
     });
     // delegated actions rendered by the loaders above
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
+      const dis = e.target.closest('[data-dismiss-finding]');
+      if (dis) {
+        const reason = (window.prompt('Why is this acceptable? (recorded in the audit log)') || '').trim();
+        if (reason.length < 3) return;
+        try { await api(`/governance/findings/${dis.dataset.dismissFinding}/dismiss`, { method: 'POST', body: { reason } }); showToast('Finding dismissed.', 'success'); loadFindings(); }
+        catch (err) { showToast(err.message, 'danger'); }
+        return;
+      }
       const view = e.target.closest('[data-view]'); if (view) return openIdentity(view.dataset.view);
       const dec = e.target.closest('[data-decide]'); if (dec) return decide(dec);
       const nav = e.target.closest('[data-nav]'); if (nav) return navigateTo(nav.dataset.nav);

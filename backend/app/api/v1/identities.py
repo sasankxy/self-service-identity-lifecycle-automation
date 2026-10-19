@@ -17,7 +17,7 @@ from app.models import (
     AccessProfile, AccessProfileEntitlement, ApprovalRequest, Department, Entitlement, Identity, IdentityEntitlement,
     LifecycleRequest, LifecycleRequestEntitlement, RiskAssessment,
 )
-from app.services import audit, stats
+from app.services import audit, lifecycle, policy, stats
 from app.services.accounts import Principal
 from app.services.cache import cached, invalidate
 
@@ -198,3 +198,36 @@ async def create_identity(body: IdentityIn, request: Request, db: AsyncSession =
     await db.commit()
     await invalidate(request)
     return {"id": ident.id, "name": ident.full_name, "request_ref": f"REQ-{lreq.ref_no}", "status": "pending_approval", "risk_score": score}
+
+
+class DeprovisionIn(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
+    effective_date: date | None = None
+
+    @field_validator("reason")
+    @classmethod
+    def _strip(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("Give a reason")
+        return v
+
+
+@router.post("/{identity_id}/deprovision", status_code=202)
+async def deprovision(identity_id: uuid.UUID, body: DeprovisionIn, request: Request, db: AsyncSession = Depends(get_db),
+                      actor: Principal = Depends(require_permission("identities:write"))):
+    """Request offboarding (Leaver). Always approval-gated: this only creates a pending request; nothing is revoked until an approver says yes
+    (or, for a future effective date, until that date). Same policy path as the assistant."""
+    ident = await db.get(Identity, identity_id)
+    if not ident:
+        raise ApiError(404, "not_found", "Identity not found.")
+    if body.effective_date and body.effective_date < datetime.now(timezone.utc).date():
+        raise ApiError(422, "validation_error", "The effective date cannot be in the past.", fields={"effective_date": "Cannot be in the past"})
+    plan = await policy.build_plan(db, kind="leaver", identity=ident, effective_date=body.effective_date, requester_id=uuid.UUID(actor.id))
+    if plan.decision != policy.APPROVAL:
+        raise ApiError(409, "nothing_to_do", " ".join(plan.notes + plan.reasons) or "This identity cannot be offboarded.")
+    out = await lifecycle.execute_plan(db, request, actor, plan, body.reason, via="api", justification=body.reason,
+                                       audit_action="identity.deprovision_requested")
+    await invalidate(request)
+    return {"id": ident.id, "name": ident.full_name, "request_ref": out["ref"], "status": out["request_status"], "decision": out["decision"],
+            "revokes": [l.name for l in plan.removes]}

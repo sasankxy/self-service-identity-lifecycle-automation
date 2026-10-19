@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Identity as SAIdentity, Index, String, func
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Identity as SAIdentity, Index, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -104,3 +104,53 @@ class CertificationItem(Base):
     )
     decision: Mapped[str | None] = mapped_column(String(10))
     decided_at: Mapped[datetime | None] = mapped_column()
+
+
+class GovernanceFinding(Base, UUIDPk):
+    """One detected governance problem (orphaned account / privilege creep). A scan opens, refreshes and auto-resolves these;
+    the unique key makes re-detection idempotent, and a dismissed finding stays dismissed while it is still detected."""
+
+    __tablename__ = "governance_findings"
+    __table_args__ = (
+        CheckConstraint("kind IN ('orphan','creep')", name="kind_valid"),
+        CheckConstraint("severity IN ('low','medium','high','critical')", name="severity_valid"),
+        CheckConstraint("status IN ('open','resolved','dismissed')", name="status_valid"),
+        UniqueConstraint("rule", "identity_id", "subject_key", name="uq_governance_findings_key"),
+        Index("ix_governance_findings_status_kind", "status", "kind"),
+        Index("ix_governance_findings_identity", "identity_id"),
+    )
+    kind: Mapped[str] = mapped_column(String(10), nullable=False)
+    rule: Mapped[str] = mapped_column(String(40), nullable=False)
+    identity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("identities.id", ondelete="CASCADE"), nullable=False)
+    subject_key: Mapped[str] = mapped_column(String(80), nullable=False, server_default="")   # e.g. the entitlement id for creep
+    severity: Mapped[str] = mapped_column(String(10), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="open")
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    details: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
+    source: Mapped[str] = mapped_column(String(20), nullable=False, server_default="scan")      # scan | scheduled | mover_trigger | ...
+    first_detected_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    last_detected_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column()
+    dismissed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    dismissed_reason: Mapped[str | None] = mapped_column(String(300))
+
+
+class GovernanceScanRun(Base, UUIDPk):
+    """History of full governance scans (scheduled, manual or CLI)."""
+
+    __tablename__ = "governance_scan_runs"
+    __table_args__ = (
+        CheckConstraint("status IN ('ok','failed')", name="status_valid"),
+        CheckConstraint("trigger IN ('scheduled','manual','cli')", name="trigger_valid"),
+        Index("ix_governance_scan_runs_started_at", "started_at"),
+    )
+    started_at: Mapped[datetime] = mapped_column(nullable=False)
+    finished_at: Mapped[datetime] = mapped_column(nullable=False)
+    trigger: Mapped[str] = mapped_column(String(12), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)
+    identities_scanned: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    opened: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    resolved: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    open_total: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    applied_due: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    error: Mapped[str | None] = mapped_column(String(500))

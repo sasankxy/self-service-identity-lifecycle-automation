@@ -4,6 +4,6 @@ __pycache__/
 *.pyc
 *.pem
 .pytest_cache/
-nlu/
-.vscode/
-frontend.zip
+.gitignore
+backend.zip
+.vscode

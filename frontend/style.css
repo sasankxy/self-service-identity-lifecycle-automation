@@ -1823,3 +1823,43 @@ body {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
 }
+
+/* ── VOICE INPUT (assistant) ─────────────────────────────── */
+.mic-btn {
+  background: transparent;
+  border: 1px solid var(--border-input);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.mic-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+.mic-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.mic-btn--on {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+  animation: mic-pulse 1.4s ease-out infinite;
+}
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0 var(--danger-border); }
+  100% { box-shadow: 0 0 0 8px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .mic-btn--on { animation: none; } }
+.voice-status { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; }
+.voice-status--error { color: var(--danger); }
+.voice-autosend { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: var(--text-dim); margin-top: 0.4rem; cursor: pointer; }
+
+/* ── GOVERNANCE FINDINGS + extra audit filters ───────────── */
+.gov-card--wide { grid-column: 1 / -1; }
+.gov-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.finding-item .sod-title { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.finding-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+.finding-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.audit-filters { flex-wrap: wrap; }

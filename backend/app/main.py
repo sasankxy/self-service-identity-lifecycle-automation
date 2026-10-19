@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from sqlalchemy.pool import NullPool
 from app.api.v1 import admin, approvals, assistant, audit_logs, auth, dashboard, governance, identities, meta, risk
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
-from app.services import nlu
+from app.services import nlu, scheduler
 from app.services.accounts import ensure_reference_data
 
 
@@ -34,7 +35,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         async with app.state.sessionmaker() as db:
             nlu.configure(await nlu.load_catalogue(db))      # NLU vocabulary = the directory's departments/apps/entitlements
         await run_in_threadpool(nlu.warm_up)      # load NLU models once; failure only disables the NLU layer
+        app.state.scan_task = scheduler.start(app, settings)      # proactive governance loop (None when disabled / ENV=test)
         yield
+        if app.state.scan_task:
+            app.state.scan_task.cancel()
+            await asyncio.gather(app.state.scan_task, return_exceptions=True)
         await app.state.redis.aclose()
         await engine.dispose()
 

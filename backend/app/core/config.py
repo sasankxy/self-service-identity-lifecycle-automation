@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     # --- cache TTLs ---
     principal_cache_ttl_seconds: int = 60
 
+    # --- proactive governance (orphan / privilege-creep scan + due-request applier) ---
+    governance_scan_interval_minutes: int = Field(60, ge=0, le=1440)     # 0 disables the background scheduler (never runs when ENV=test)
+    governance_scan_initial_delay_seconds: int = Field(20, ge=0, le=3600)
+
     # Trust X-Forwarded-For only when running behind a known reverse proxy.
     trust_proxy_headers: bool = False
 

@@ -27,7 +27,9 @@ from app.core.deps import get_db, require_permission
 from app.core.errors import ApiError
 from app.models import (AccessProfile, ApprovalRequest, Department, Entitlement, Identity, IdentityEntitlement, LifecycleRequest,
                         LifecycleRequestEntitlement)
-from app.services import lifecycle, nlu, policy, slm, stats
+from copy import deepcopy
+
+from app.services import lifecycle, memory, namematch, nlu, policy, scope, slm, stats
 from app.services.cache import invalidate
 from app.services.accounts import Principal
 
@@ -40,6 +42,8 @@ user users employee employees""".split())
 
 class QueryIn(BaseModel):
     query: str = Field(min_length=1, max_length=500)
+    session_id: str | None = Field(None, max_length=64)      # one per chat window; enables follow-up answers and pronouns
+    input_mode: Literal["text", "voice"] = "text"            # "voice": the text came from speech recognition, so names may be misheard
 
 
 def _kv(items): return {"type": "kv", "items": [[k, "—" if v is None else str(v)] for k, v in items]}
@@ -76,6 +80,11 @@ async def _legacy(db: AsyncSession, actor: Principal, query: str) -> tuple[list[
         scored = [(sum(w in (c.full_name + " " + c.email).lower() for w in words), c) for c in cand]
         best = max((s for s, _ in scored), default=0)
         matches = [c for s, c in scored if s == best and best > 0]
+        # Without any access-management vocabulary, only treat the text as a name lookup if every word is a WHOLE word of the
+        # person's name/e-mail ("Kai Chen", "kai.chen"). Substring matching made "how are you" answer with the Youngs.
+        if matches and not scope.in_scope(query):
+            parts = [x for w in words for x in re.findall(r"[a-z0-9]+", w)]
+            matches = [c for c in matches if len(parts) <= 3 and all(x in set(re.findall(r"[a-z0-9]+", (c.full_name + " " + c.email).lower())) for x in parts)]
     if 1 <= len(matches) <= 3:
         for i in matches:
             blocks += await _identity_card(db, i)
@@ -115,7 +124,7 @@ async def _legacy(db: AsyncSession, actor: Principal, query: str) -> tuple[list[
 # ───────────────────────────── NLU-driven answers ─────────────────────────────
 LABELS = {"JOINER": "Onboard (joiner)", "MOVER": "Department move (mover)", "LEAVER": "Offboard (leaver)",
           "ACCESS_REQUEST": "Access request", "ACCESS_REVOCATION": "Access revocation", "ACCESS_STATUS_QUERY": "Access status question"}
-KIND = {"MOVER": "mover", "ACCESS_REQUEST": "access_request", "ACCESS_REVOCATION": "access_revocation"}
+KIND = {"MOVER": "mover", "ACCESS_REQUEST": "access_request", "ACCESS_REVOCATION": "access_revocation", "LEAVER": "leaver"}
 DECISION_TITLE = {policy.AUTO: "Policy decision: within policy, no approval needed", policy.APPROVAL: "Policy decision: needs a human approval",
                   policy.DENY: "Policy decision: blocked", policy.CLARIFY: "I need a bit more information", policy.NOOP: "Nothing to change"}
 
@@ -168,7 +177,7 @@ async def _dept_by_name(db: AsyncSession, name: str | None) -> Department | None
 
 # ---- proposal: what the browser sends back on "Confirm". The SERVER rebuilds the plan from it; the decision is never trusted.
 class Proposal(BaseModel):
-    kind: Literal["mover", "access_request", "access_revocation"]
+    kind: Literal["mover", "access_request", "access_revocation", "leaver"]
     identity_id: uuid.UUID
     to_department: str | None = Field(None, max_length=120)
     access_profile: str | None = Field(None, max_length=120)
@@ -179,7 +188,7 @@ class Proposal(BaseModel):
     text: str = Field("", max_length=500)
 
 
-async def _plan_from(db: AsyncSession, p: Proposal) -> policy.Plan:
+async def _plan_from(db: AsyncSession, p: Proposal, actor: Principal) -> policy.Plan:
     ident = await db.get(Identity, p.identity_id)
     if not ident:
         raise ApiError(404, "not_found", "Identity not found.")
@@ -193,7 +202,8 @@ async def _plan_from(db: AsyncSession, p: Proposal) -> policy.Plan:
         if not prof:
             raise ApiError(422, "validation_error", "Unknown access profile for that department.", fields={"access_profile": "Unknown access profile"})
     return await policy.build_plan(db, kind=p.kind, identity=ident, to_dept=to_dept, applications=p.applications, roles=p.roles,
-                                   effective_date=p.effective_date, date_text=p.date_text, access_profile=prof)
+                                   effective_date=p.effective_date, date_text=p.date_text, access_profile=prof,
+                                   requester_id=uuid.UUID(actor.id))
 
 
 def _plan_blocks(plan: policy.Plan, actor: Principal, proposal: Proposal) -> list[dict]:
@@ -203,6 +213,8 @@ def _plan_blocks(plan: policy.Plan, actor: Principal, proposal: Proposal) -> lis
     if plan.reasons and plan.decision != policy.CLARIFY:
         blocks.append(_list(plan.reasons))
     rows = []
+    if plan.kind == "leaver" and plan.decision != policy.NOOP:
+        rows.append(("Offboarding", "Deactivates the account and revokes all access"))
     if plan.moves_department:
         rows.append(("Department", f"{plan.from_dept.name if plan.from_dept else '—'} → {plan.to_dept.name}"))
     if plan.profile and plan.moves_department:
@@ -235,7 +247,7 @@ def _plan_blocks(plan: policy.Plan, actor: Principal, proposal: Proposal) -> lis
 async def _slm_blocks(request: Request, query: str) -> list[dict]:
     """Suggestions from the local SLM. Suggest-only: the output is catalogue-validated and offered as a clickable rephrasing."""
     client = slm.get_client(request.app.state.settings)
-    out = await client.interpret(query, nlu.catalogue()) if client else None
+    out = await client.interpret(query, nlu.catalogue()) if client and scope.in_scope(query) else None
     if not out:
         return []
     rows = [("Intent", LABELS.get(out["intent"], "unclear")), ("Person", out["person"]), ("From department", out["source_department"]),
@@ -249,7 +261,31 @@ async def _slm_blocks(request: Request, query: str) -> list[dict]:
     return blocks
 
 
-async def _answer_nlu(db: AsyncSession, actor: Principal, res: dict, request: Request, query: str) -> tuple[list[dict], bool]:
+async def _voice_name_suggestions(db: AsyncSession, heard: str) -> list[dict]:
+    """Closest directory names to a (possibly misheard) spoken name. Same visibility as the exact lookup: any identity the caller can read."""
+    rows = (await db.execute(select(Identity.employee_id, Identity.full_name, Identity.email).limit(5000))).all()
+    return namematch.rank(heard, [tuple(r) for r in rows])
+
+
+def _suggestion_blocks(heard: str, found: list[dict], ctx: dict, label: str, slots: dict) -> list[dict]:
+    """Reuses the 'which one do you mean?' machinery: the reply (a click, a name, or 'the second one') fills the person slot."""
+    ctx["pending"] = {"label": label, "slots": slots, "ask": "person", "question": "Which one do you mean? (name, employee ID or email)",
+                      "options": [{"value": f["employee_id"], "label": f["full_name"], "employee_id": f["employee_id"],
+                                   "aliases": [f["employee_id"], f["email"], f["email"].split("@")[0]]} for f in found]}
+    names = [f["full_name"] for f in found]
+    blocks = [_text(f"I couldn't find “{heard}”. Voice input can mishear names. Did you mean one of these?"),
+              _list([f"{f['full_name']} <{f['email']}> · {f['employee_id']}" for f in found])]
+    for f in found:      # a button sends the name (or the employee ID if two suggestions share a name)
+        send = f["full_name"] if names.count(f["full_name"]) == 1 else f["employee_id"]
+        blocks.append({"type": "action", "label": f["full_name"] if send == f["full_name"] else f"{f['full_name']} · {f['employee_id']}",
+                       "action": f"send:{send}"})
+    return blocks + [_text("Or say “cancel” to drop this request.")]
+
+
+async def _answer_nlu(db: AsyncSession, actor: Principal, res: dict, request: Request, query: str, ctx: dict | None = None,
+                      voice: bool = False) -> tuple[list[dict], bool]:
+    """`ctx` is filled with what the conversation memory should keep: ctx['pending'] (the question just asked) and ctx['person']."""
+    ctx = ctx if ctx is not None else {}
     label, s = res["intent"]["label"], res["slots"]
     slm_used = False
     # echo the interpretation for actions and clarifications; a plain status lookup just answers
@@ -258,6 +294,7 @@ async def _answer_nlu(db: AsyncSession, actor: Principal, res: dict, request: Re
     if res["status"] == "NEEDS_CLARIFICATION":       # blocking ambiguity or a missing required field: ask, don't guess
         blocks += [_text("I need a little more detail before I can look this up:"), _list(res["clarification_questions"] or
                    [f"Please provide: {', '.join(res['missing_fields'])}."])]
+        ctx["pending"] = _pending_for(label, s, res["missing_fields"], res["clarification_questions"])
         if label in ("JOINER", "MOVER") and not s.get("target_department") and not res.get("unresolved"):
             extra = await _slm_blocks(request, query)
             blocks, slm_used = blocks + extra, bool(extra)
@@ -287,10 +324,21 @@ async def _answer_nlu(db: AsyncSession, actor: Principal, res: dict, request: Re
         return blocks, slm_used
 
     if not matches:
+        if voice and s.get("person") and not s.get("employee_id"):       # spoken names only; typed text keeps the exact behaviour
+            found = await _voice_name_suggestions(db, s["person"])
+            if found:
+                return blocks + _suggestion_blocks(s["person"], found, ctx, label, s), False
         return blocks + [_text("I couldn't find a matching identity in the directory.")], False
     if len(matches) > 1:
-        return blocks + [_text(f"{len(matches)} identities match. Which one do you mean?"), _list([f"{m.full_name} <{m.email}> · {m.employee_id}" for m in matches[:6]])], False
+        shown = matches[:10]
+        ctx["pending"] = {"label": label, "slots": s, "ask": "person", "question": "Which one do you mean? (name, employee ID or email)",
+                          "options": [{"value": m.employee_id, "label": m.full_name, "employee_id": m.employee_id,
+                                       "aliases": [m.employee_id, m.email, m.email.split("@")[0]]} for m in shown]}
+        more = [] if len(matches) <= 10 else [_text(f"…and {len(matches) - 10} more. Add a surname or an employee ID to narrow it down.")]
+        return blocks + [_text(f"{len(matches)} identities match. Which one do you mean? You can reply with the name, employee ID, or “the second one”."),
+                         _list([f"{m.full_name} <{m.email}> · {m.employee_id}" for m in shown]), *more], False
     who = matches[0]
+    ctx["person"] = {"employee_id": who.employee_id, "name": who.full_name}
     card = await _identity_card(db, who)
     apps, roles = s.get("applications") or [], s.get("access_roles") or []
 
@@ -298,19 +346,15 @@ async def _answer_nlu(db: AsyncSession, actor: Principal, res: dict, request: Re
         what = ", ".join(apps + roles)
         blocks += card + [_head(f"Current access to {what}" if what else "Current access"),
                           _list(await _entitlements(db, who.id, apps, roles) or ["No matching active or pending access."])]
-    elif label == "LEAVER":
-        rows = (await db.execute(select(LifecycleRequest.ref_no, LifecycleRequest.status).where(
-            LifecycleRequest.identity_id == who.id, LifecycleRequest.request_type == "leaver",
-            LifecycleRequest.status.in_(("pending_approval", "approved"))).order_by(LifecycleRequest.created_at.desc()).limit(3))).all()
-        blocks += card + [_text("Offboarding isn't available from chat yet; deprovisioning is executed through approved Leaver requests."),
-                          _head("Open Leaver requests"), _list([f"REQ-{n} · {st}" for n, st in rows] or ["None for this person."])]
-        blocks.append({"type": "action", "label": "Open approvals queue", "action": "nav:approvals"})
-    else:   # MOVER / ACCESS_REQUEST / ACCESS_REVOCATION -> policy plan
+    else:   # MOVER / ACCESS_REQUEST / ACCESS_REVOCATION / LEAVER -> policy plan
         d = s.get("effective_date")
         prop = Proposal(kind=KIND[label], identity_id=who.id, to_department=s.get("target_department") if label == "MOVER" else None,
-                        applications=apps, roles=roles, effective_date=date.fromisoformat(d["value"]) if d and d.get("resolved") else None,
+                        applications=apps, roles=roles, access_profile=s.get("access_profile") if label == "MOVER" else None, effective_date=date.fromisoformat(d["value"]) if d and d.get("resolved") else None,
                         date_text=d["expression"] if d and not d.get("resolved") else None, text=query[:500])
-        plan = await _plan_from(db, prop)
+        plan = await _plan_from(db, prop, actor)
+        if plan.choices:
+            c = plan.choices[0]
+            ctx["pending"] = {"label": label, "slots": s, "ask": c["ask"], "app": c.get("app"), "options": c["options"], "question": plan.questions[0]}
         blocks += card
         src = s.get("source_department")
         if label == "MOVER" and src and plan.from_dept and src.lower() != plan.from_dept.name.lower():
@@ -319,19 +363,136 @@ async def _answer_nlu(db: AsyncSession, actor: Principal, res: dict, request: Re
     return blocks, False
 
 
+_MISSING_Q = {"person": "Who is this for? (full name or employee ID)", "target_department": "Which department should the employee move to?",
+              "applications": "Which application or entitlement is this about?"}
+_REQUIRED = {"MOVER": ("person", "target_department"), "JOINER": ("person", "target_department"), "LEAVER": ("person",),
+             "ACCESS_REQUEST": ("person", "applications"), "ACCESS_REVOCATION": ("person", "applications"), "ACCESS_STATUS_QUERY": ("person",)}
+
+
+def _missing(label: str, s: dict) -> list[str]:
+    out = []
+    for f in _REQUIRED.get(label, ()):
+        if f == "person":
+            ok = s.get("person") or s.get("employee_id") or s.get("subject_reference")
+        elif f == "applications":
+            ok = s.get("applications") or s.get("access_roles")
+        else:
+            ok = s.get(f)
+        if not ok:
+            out.append(f)
+    return out
+
+
+def _options_for(field: str) -> list[dict]:
+    cat = nlu.catalogue()
+    if field == "target_department":
+        return [{"value": d, "label": d, "aliases": nlu.DEPT_ALIASES.get(d, [])} for d in cat["departments"]]
+    if field == "applications":
+        return [{"value": a, "label": a, "aliases": nlu.APP_ALIASES.get(a, [])} for a in cat["applications"]]
+    return []
+
+
+def _pending_for(label: str, s: dict, missing: list[str], questions: list[str]) -> dict | None:
+    """Turn the first missing required slot into a question the next message can answer."""
+    for f in ("person", "target_department", "applications"):
+        if f in missing and label in _REQUIRED and f in _REQUIRED[label]:
+            return {"label": label, "slots": s, "ask": f, "options": _options_for(f), "question": _MISSING_Q[f]}
+    return None
+
+
+def _synthetic(pending: dict, slots: dict) -> dict:
+    """Rebuild an NLU-shaped result from remembered state plus the newly supplied answer."""
+    label, missing = pending["label"], _missing(pending["label"], slots)
+    return {"intent": {"label": label, "confidence": None, "confidence_type": "dialogue_state", "method": "conversation_memory"},
+            "slots": slots, "unresolved": {}, "ambiguities": [], "missing_fields": missing,
+            "clarification_questions": [_MISSING_Q[m] for m in missing if m in _MISSING_Q],
+            "status": "NEEDS_CLARIFICATION" if missing else "PARSED"}
+
+
+def _resolve_pronoun(res: dict | None, person: dict | None) -> tuple[dict | None, bool]:
+    """'Move him to Finance' -> use the last person shown in this chat."""
+    if not res or not person or res["intent"]["label"] not in nlu.ASSISTANT_INTENTS:
+        return res, False
+    s = res["slots"]
+    if s.get("person") or s.get("employee_id") or not any(a["type"] == "unresolved_pronoun" for a in res["ambiguities"]):
+        return res, False
+    r = deepcopy(res)
+    r["slots"].update(person=person["name"], employee_id=person["employee_id"])
+    r["ambiguities"] = [a for a in r["ambiguities"] if a["type"] != "unresolved_pronoun"]
+    r["missing_fields"] = [m for m in r["missing_fields"] if m != "person"]
+    r["clarification_questions"] = [q for q in r["clarification_questions"] if "pronoun" not in q] + \
+        [_MISSING_Q[m] for m in r["missing_fields"] if m in _MISSING_Q]
+    blocking = [a for a in r["ambiguities"] if a["blocking"]]
+    r["status"] = "NEEDS_CLARIFICATION" if blocking or r["missing_fields"] else "PARSED"
+    return r, True
+
+
+def _pronoun_unresolved(res: dict | None) -> bool:
+    """A lifecycle request that says only 'him/her' and there is no one to resolve it to: ask who, and remember the question."""
+    return bool(res and res["status"] == "NEEDS_CLARIFICATION" and res["intent"]["label"] in nlu.ASSISTANT_INTENTS
+                and "person" in res["missing_fields"] and any(a["type"] == "unresolved_pronoun" for a in res["ambiguities"]))
+
+
+def _reask(pending: dict, options: list[dict] | None = None, lead: str = "I didn't catch that.") -> list[dict]:
+    opts = options if options is not None else pending.get("options") or []
+    blocks = [_text(f"{lead} {pending.get('question', '')}".strip())]
+    if 0 < len(opts) <= 10:
+        blocks.append(_list([o["label"] for o in opts]))
+    blocks.append(_text("You can also say “cancel” to drop this request."))
+    return blocks
+
+
 @router.post("/query")
 async def ask(body: QueryIn, request: Request, db: AsyncSession = Depends(get_db),
               actor: Principal = Depends(require_permission("identities:read"))):
+    redis, sid = request.app.state.redis, body.session_id
+    state = await memory.load(redis, actor.id, sid)
+    pending, ctx, via = state.get("pending"), {}, None
     res = await nlu.parse(body.query, date.today())
-    if nlu.is_actionable(res):
-        blocks, used = await _answer_nlu(db, actor, res, request, body.query)
+
+    # 1) is this an answer to the question I just asked?  (a complete new request that names a person always wins)
+    if pending:
+        s0 = (res or {}).get("slots", {})
+        new_request = nlu.is_actionable(res) and bool(s0.get("person") or s0.get("employee_id"))
+        if not new_request:
+            if memory.is_cancel(body.query):
+                await memory.save(redis, actor.id, sid, {**state, "pending": None})
+                return {"blocks": [_text("Okay, I've dropped that request.")], "nlu": {"intent": "CANCEL", "context": "memory"},
+                        "source": "Conversation memory (this chat only)."}
+            kind, hit = memory.apply_answer(pending, body.query)
+            if kind == "one":
+                res, via = _synthetic(pending, hit), "answer"
+            elif kind == "many":
+                pending = {**pending, "options": hit}
+                await memory.save(redis, actor.id, sid, {**state, "pending": pending})
+                return {"blocks": _reask(pending, lead="That matches more than one."), "nlu": {"intent": pending["label"], "context": "memory"},
+                        "source": "Conversation memory (this chat only)."}
+            elif not nlu.is_actionable(res):
+                blocks, handled = await _legacy(db, actor, body.query)     # e.g. "show pending approvals" mid-conversation still works
+                if handled:
+                    return {"blocks": blocks, "nlu": None, "source": "Rule-based directory lookup over live records (not a generative model)."}
+                return {"blocks": _reask(pending), "nlu": {"intent": pending["label"], "context": "memory"},
+                        "source": "Conversation memory (this chat only)."}
+        pending = None            # answered, replaced by a new request, or abandoned
+
+    # 2) "him / her" -> the last person shown in this chat
+    if via is None:
+        res, resolved = _resolve_pronoun(res, state.get("last_person"))
+        via = "pronoun" if resolved else None
+
+    if nlu.is_actionable(res) or _pronoun_unresolved(res):
+        blocks, used = await _answer_nlu(db, actor, res, request, body.query, ctx, voice=body.input_mode == "voice")
+        await memory.save(redis, actor.id, sid, {"pending": ctx.get("pending"), "last_person": ctx.get("person") or state.get("last_person")})
         i = res["intent"]
         src = ("Interpreted by the NLU pipeline with a local language model's suggestions (suggest-only); policy decisions are deterministic."
                if used else "Language understanding by the NLU pipeline (rules + statistical models, not a generative model), answered from live directory records; "
                             "changes are policy-checked.")
         return {"blocks": blocks, "nlu": {"intent": i["label"], "confidence": i["confidence"], "confidence_type": i["confidence_type"],
-                                          "method": i["method"], "status": res["status"], "slm_used": used}, "source": src}
+                                          "method": i["method"], "status": res["status"], "slm_used": used, "context": via}, "source": src}
     blocks, handled = await _legacy(db, actor, body.query)
+    if not handled and not scope.in_scope(body.query, res):      # chit-chat / off-topic: refuse politely, model never called
+        return {"blocks": [_text(scope.SCOPE_MESSAGE), _list(scope.EXAMPLES)], "nlu": {"intent": "OUT_OF_SCOPE"},
+                "source": "Out of scope: this assistant only handles identity and access management (no model was used)."}
     if not handled:
         extra = await _slm_blocks(request, body.query)
         if extra:
@@ -343,7 +504,7 @@ async def ask(body: QueryIn, request: Request, db: AsyncSession = Depends(get_db
 @router.post("/plan")
 async def replan(body: Proposal, db: AsyncSession = Depends(get_db), actor: Principal = Depends(require_permission("identities:read"))):
     """Re-evaluate a proposal (e.g. after choosing an access profile). Read-only: returns the plan blocks, changes nothing."""
-    return {"blocks": _plan_blocks(await _plan_from(db, body), actor, body)}
+    return {"blocks": _plan_blocks(await _plan_from(db, body, actor), actor, body)}
 
 
 class ExecuteIn(BaseModel):
@@ -355,13 +516,13 @@ class ExecuteIn(BaseModel):
 async def execute(body: ExecuteIn, request: Request, db: AsyncSession = Depends(get_db),
                   actor: Principal = Depends(require_permission("identities:write"))):
     """Confirm a proposal. The plan is rebuilt and re-decided here; the browser's idea of the decision is only compared."""
-    plan = await _plan_from(db, body.proposal)
+    plan = await _plan_from(db, body.proposal, actor)
     if plan.decision != body.expected_decision:
         raise ApiError(409, "policy_changed", f"The policy outcome changed to “{plan.decision}” since you reviewed it. Ask again to see the new plan.")
     if plan.decision not in (policy.AUTO, policy.APPROVAL):
         raise ApiError(422, "not_allowed", "This request cannot be submitted.")
     want = {(l.entitlement_id, l.action) for l in plan.lines}
-    rtype = "mover" if plan.kind == "mover" else "privilege"
+    rtype = {"mover": "mover", "leaver": "leaver"}.get(plan.kind, "privilege")
     for r in (await db.execute(select(LifecycleRequest).where(LifecycleRequest.identity_id == plan.identity.id, LifecycleRequest.request_type == rtype,
                                                               LifecycleRequest.status == "pending_approval"))).scalars():
         have = {(d.entitlement_id, d.action) for d in (await db.execute(select(LifecycleRequestEntitlement).where(
@@ -372,7 +533,7 @@ async def execute(body: ExecuteIn, request: Request, db: AsyncSession = Depends(
     await invalidate(request)
     if out["decision"] == policy.AUTO:
         msg = (f"{out['ref']} applied." if out["applied"] else f"{out['ref']} approved and scheduled for {out['scheduled_for']}.")
-        note = "No live connector is configured, so no external provisioning was executed." if out["applied"] else "It will be applied on that date by the scheduler (python -m scripts.apply_due)."
+        note = "No live connector is configured, so no external provisioning was executed." if out["applied"] else "It will be applied on that date by the governance scheduler (or `python -m scripts.apply_due`)."
     else:
         msg, note = f"{out['ref']} submitted for approval.", "It is now in the approvals queue."
     blocks = [_head(msg), _text(note)] + ([{"type": "action", "label": "Open approvals queue", "action": "nav:approvals"}] if out["decision"] == policy.APPROVAL else [])

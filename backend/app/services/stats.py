@@ -99,6 +99,10 @@ ACTION_LABELS = {
     "user.reactivate": "Portal Account Reactivated", "user.roles_changed": "Portal Roles Changed", "user.bootstrap_admin": "Admin Bootstrapped",
     "approval.approve": "Request Approved", "approval.reject": "Request Rejected", "identity.create": "Identity Onboarding Requested",
     "governance.campaign_create": "Certification Campaign Launched", "audit.export": "Audit Log Exported", "risk.export": "Risk Report Exported",
+    "governance.scan": "Governance Scan Completed", "governance.finding_opened": "Governance Finding Opened",
+    "governance.finding_dismissed": "Governance Finding Dismissed", "governance.mover_recheck": "Mover Access Re-check",
+    "identity.deprovision_requested": "Offboarding Requested", "assistant.request_submitted": "Request Submitted for Approval (Assistant)",
+    "assistant.request_auto_approved": "Request Auto-approved (Assistant)",
 }
 
 

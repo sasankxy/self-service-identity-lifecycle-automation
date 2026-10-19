@@ -629,6 +629,10 @@
             <option value="info">Info</option>
           </select>
           <input type="search" class="filter-select" id="audit-search" placeholder="Search event, actor, target…" />
+          <input type="search" class="filter-select" id="audit-actor" placeholder="Actor (user)…" aria-label="Filter by actor" />
+          <input type="search" class="filter-select" id="audit-action" placeholder="Event type, e.g. approval" aria-label="Filter by event type" />
+          <input type="date" class="filter-select" id="audit-since" aria-label="From date" title="From date" />
+          <input type="date" class="filter-select" id="audit-until" aria-label="To date" title="To date" />
         </div>
         <button class="btn-secondary btn-sm" id="audit-export">Export Audit Log (CSV)</button>
       </div>
@@ -662,6 +666,26 @@
     <!-- PAGE: GOVERNANCE -->
     <section class="page" id="page-governance">
       <div class="gov-grid">
+        <div class="card gov-card gov-card--wide" id="gov-findings-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Detected Findings</h2>
+              <p class="card-subtitle" id="gov-scan-meta">Orphaned accounts and privilege creep</p>
+            </div>
+            <div class="gov-actions">
+              <select class="filter-select" id="gov-finding-kind" aria-label="Finding type">
+                <option value="">All findings</option>
+                <option value="orphan">Orphaned accounts</option>
+                <option value="creep">Privilege creep</option>
+              </select>
+              <span class="status-pill status-pill--neutral" id="gov-findings-count">—</span>
+              <button class="btn-secondary btn-xs" data-perm="governance:manage" id="gov-scan-now">Scan now</button>
+            </div>
+          </div>
+          <ul class="sod-list" id="gov-findings">
+            <li class="pu-state">Loading…</li>
+          </ul>
+        </div>
         <div class="card gov-card">
           <div class="card-header">
             <div>
@@ -879,6 +903,7 @@
   <script src="app.js"></script>
   <script src="platform-users.js"></script>
   <script src="pages.js"></script>
+  <script src="voice.js"></script>
   <script src="notifications.js"></script>
 </body>
 
