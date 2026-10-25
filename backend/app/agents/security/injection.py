@@ -18,6 +18,8 @@ _RULES: list[tuple[str, str]] = [
     ("approval_bypass", r"\b(auto[- ]?approve|approve (it|this|my|own)|self[- ]?approv\w*|skip (the )?approval|without (any )?approval|"
                         r"mark (it|this) (as )?approved|no need (for|to get) approval)\b"),
     ("tool_smuggling", r"\b(call|invoke|run|execute|use)\b.{0,20}\b(tool|function)\b|\{\s*\"(tool|name|function)\"\s*:"),
+    ("audit_evasion", r"\b(?:don'?t|do not|no need to|without|skip|avoid|stop)\s+(?:any\s+)?(?:log(?:ging)?|audit(?:ing)?|record(?:ing)?|"
+                      r"trac(?:e|ing)|notify(?:ing)?|tell(?:ing)? (?:anyone|security|the approver))\b|\b(?:quietly|secretly|silently|off the books)\b"),
     ("privilege_grab", r"\b(make|grant|give|set)\s+(me|myself)\b.{0,30}\b(super ?admin|iam ?admin|admin(istrator)?|root|god mode|all (access|permissions))\b"),
     ("code_injection", r"(```|<script|\bdrop\s+table\b|;\s*--|\bunion\s+select\b|\$\{.*\}|\{\{.*\}\})"),
 ]

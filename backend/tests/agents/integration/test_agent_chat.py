@@ -138,3 +138,31 @@ async def test_why_question_explains_provenance(as_role, app):
     r = await chat(c, f"Why does {name} have Microsoft 365 access?")
     assert [t["node"] for t in r["trace"]] == ["sentinel", "understand", "investigate"]
     assert f"Why {name} has this access" in texts(r) and "access profile" in texts(r), texts(r)
+
+
+async def test_llm_extractor_path_with_fake_model(as_role, app):
+    """Phrasing the NLU can't parse is understood by the extractor agent; its output is still quarantined, previewed and confirmed."""
+    from app.agents.llm import FakeLLM
+    name = await bystander(app, 2, "full_name")
+
+    def respond(role, system, user):
+        if role == "sentinel":
+            return 0.001
+        if role == "extractor":
+            return {"intent": "MOVER", "person": name, "employee_id": None, "self_reference": False, "source_department": None,
+                    "target_department": QUIET_TARGET, "access_profile": None, "applications": [], "entitlements": [],
+                    "effective_date": None, "date_expression": None, "reason": None}
+        return None                                            # narrator etc. "down": deterministic fallback
+    app.state.agent_llm = FakeLLM(respond)
+    try:
+        c = await as_role("iam_admin")
+        r = await chat(c, f"pls shift {name.lower()} over to the {QUIET_TARGET.lower()} team asap thx", "sess-agent-llm-01")
+        understand = next(t for t in r["trace"] if t["node"] == "understand")
+        roles = {(x["role"], x["ok"]) for x in r["llm_calls"]}
+        assert ("sentinel", True) in roles
+        if understand.get("via") == "llm_extractor":           # the NLU may already understand it; then the extractor isn't needed
+            assert ("extractor", True) in roles
+        assert r["awaiting_confirmation"], texts(r)
+        assert "LLM agents used" in (r["source"] or "")
+    finally:
+        app.state.agent_llm = None

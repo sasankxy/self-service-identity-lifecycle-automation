@@ -1,4 +1,4 @@
-# Integration Contract v1.1.0 — Agent layer ↔ IAM backend
+# Integration Contract v1.2.0 — Agent layer ↔ IAM backend
 
 **Owners:** Person A (agent layer, `backend/app/agents`) and Person B (IAM backend, policy, governance).
 **Source of truth:** `backend/app/agents/contract.py` and `backend/app/agents/tools/schemas.py`. The JSON-schema snapshot
@@ -42,7 +42,8 @@ The plan's §5.3 tools map as follows:
 | `deprovision_user` | write | `identities:write` | `policy.build_plan(kind="leaver")` → `execute_plan` | **always approval** |
 
 Additional read tools: `search_identities`, `get_identity_profile`, `get_department_baseline`, `peer_access_stats`, `list_pending_requests`,
-`explain_entitlement_origin` (*v1.1*: why an identity holds access: profile vs request, requester, approver, baseline membership).
+`explain_entitlement_origin` (*v1.1*: why an identity holds access: profile vs request, requester, approver, baseline membership),
+`get_request_details` (*v1.2*, `approvals:read`: approver-copilot facts for one request: changes, baseline fit, SoD, requester history).
 The argument schemas are in `tools/schemas.py`, and `registry.json_schemas()` exports them for LLM prompts and the MCP server.
 
 ## 3. Execution guarantees (Action Gateway, `app/agents/gateway.py`)
@@ -73,6 +74,19 @@ A commit requires the decision the person saw (`expected_decision`) to still hol
   confirms the plan once.
 - **Commit:** `POST /agent/resume` quotes the `plan_id` as `call_id`. Steps commit in order, and the policy is re-checked for
   each one. The first failure stops the rest.
+
+## 3b. LLM agents (v1.2)
+| Agent | Model role | Output | Trust |
+|---|---|---|---|
+| Sentinel | prompt-injection classifier | probability | can only **block** (≥ `AGENT_GUARD_THRESHOLD`), after the rule check |
+| Extractor | `AGENT_MODEL_DEFAULT` | IntentV1-shaped slots | used only when the NLU is unsure; output goes through the **quarantine** |
+| Planner | `AGENT_MODEL_DEFAULT` | 2–3 single-intent steps | each step goes through the quarantine, the gateway and the cross-step verifier |
+| Narrator | `AGENT_MODEL_FAST` | one-sentence summary | display only, grounding-checked against the facts |
+| Investigator / Copilot | `AGENT_MODEL_DEFAULT` | advice (keep/review/revoke; approve/reject/more info) | advice only, grounding-checked; never decides |
+
+No model output becomes a tool argument except through quarantine, then the planner, then the Action Gateway. Each turn has a call
+budget (`AGENT_LLM_MAX_CALLS`), there's a circuit breaker, and every call is listed in `llm_calls` in the `/agent/chat` response.
+With no API key the system runs fully deterministically.
 
 ## 4. ToolResult
 `{call_id, tool, ok, decision: auto|approval|deny|clarify|noop|blocked, data, reasons[], error, audit_ref}`

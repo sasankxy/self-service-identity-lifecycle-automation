@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from app.agents import checkpoint, graph as agent_graph
+from app.agents import checkpoint, graph as agent_graph, llm as agent_llm
 from app.api.v1 import admin, agent, approvals, assistant, audit_logs, auth, dashboard, governance, identities, meta, risk
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
@@ -39,7 +39,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.scan_task = scheduler.start(app, settings)      # proactive governance loop (None when disabled / ENV=test)
         saver, close_saver = await checkpoint.open_checkpointer(settings)
         app.state.agent_graph = agent_graph.build(saver)          # multi-agent conversation graph (/api/v1/agent/*)
+        app.state.agent_llm = agent_llm.build(settings)          # LLM agents (None when disabled / no API key)
         yield
+        if app.state.agent_llm is not None:
+            await app.state.agent_llm.aclose()
         if close_saver:
             await close_saver()
         if app.state.scan_task:

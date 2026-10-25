@@ -134,3 +134,9 @@ POST /api/v1/agent/chat -> LangGraph conversation graph (state checkpointed in P
 * `AGENT_MODE=legacy` (default) keeps the chat UI on `/assistant/*`; `graph` switches it to `/agent/*`. `AGENT_CHECKPOINTER=memory`
   keeps conversations in process memory instead of Postgres (tests always use memory).
 * Tests: `pytest tests/agents/unit` (no services), `pytest tests/agents/integration` (Postgres + Redis). CI runs both on every push.
+* **LLM agents** (any OpenAI-compatible API, Groq by default): set `AGENT_LLM_ENABLED=true` and `AGENT_LLM_API_KEY` in `backend/.env`.
+  The agents are: Sentinel (prompt-guard classifier), Extractor and Planner (`gpt-oss-120b`, used when the NLU is unsure or the
+  request is compound), Narrator (`gpt-oss-20b`, grounded summaries), Investigator ("why does X have Y?") and Approver Copilot
+  ("should I approve REQ-123?"), both advisory. Models can only understand, decompose, judge or word things; tool calls are still
+  built from quarantined slots and executed only by the Action Gateway. There's a per-turn call budget and a circuit breaker, and
+  without a key the system runs fully deterministically.

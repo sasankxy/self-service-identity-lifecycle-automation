@@ -50,6 +50,10 @@ class ExplainEntitlementOrigin(Args):
     application: Name | None = None              # or every held entitlement of one application ("AWS")
 
 
+class GetRequestDetails(Args):
+    ref_no: int = Field(ge=1, le=10_000_000)      # REQ-<ref_no>
+
+
 class ListPendingRequests(Args):
     limit: int = Field(10, ge=1, le=20)
 

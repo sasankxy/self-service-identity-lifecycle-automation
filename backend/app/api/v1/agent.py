@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Request
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
-from app.agents import capabilities, deps as D
+from app.agents import capabilities, deps as D, llm as agent_llm
 from app.core import csrf
 from app.core.deps import require_permission
 from app.core.errors import ApiError
@@ -47,20 +47,30 @@ def _config(actor: Principal, session_id: str) -> dict:
 
 
 def _deps(request: Request, actor: Principal, voice: bool = False) -> D.AgentDeps:
-    return D.AgentDeps(sessionmaker=request.app.state.sessionmaker, redis=request.app.state.redis, settings=request.app.state.settings,
-                       request=request, actor=actor, cap=capabilities.mint(actor), voice=voice)
+    settings = request.app.state.settings
+    agent_llm.start_turn(settings.agent_llm_max_calls)        # per-turn model-call budget (and the call trace)
+    return D.AgentDeps(sessionmaker=request.app.state.sessionmaker, redis=request.app.state.redis, settings=settings,
+                       request=request, actor=actor, cap=capabilities.mint(actor), voice=voice,
+                       llm=getattr(request.app.state, "agent_llm", None))
 
 
 def _reply(out: dict, dep: D.AgentDeps) -> dict:
     pending = out.get("__interrupt__") or []
-    return {"blocks": out.get("blocks") or [], "source": out.get("source"), "trace_id": dep.trace_id,
+    calls = agent_llm.turn_calls()
+    used = sorted({c["role"] for c in calls if c.get("ok")})
+    source = out.get("source")
+    if used:
+        source = f"{source} LLM agents used: {', '.join(used)} (advisory/understanding only; every change is policy-checked)."
+    return {"blocks": out.get("blocks") or [], "source": source, "trace_id": dep.trace_id, "llm_calls": calls,
             "awaiting_confirmation": bool(pending), "call_id": pending[0].value.get("call_id") if pending else None,
             "intent": (out.get("intent") or {}).get("action"), "trace": out.get("trace") or []}
 
 
 @router.get("/status")
 async def status(request: Request, _: Principal = Depends(require_permission("identities:read"))):
-    return {"mode": request.app.state.settings.agent_mode, "available": getattr(request.app.state, "agent_graph", None) is not None}
+    llm = getattr(request.app.state, "agent_llm", None)
+    return {"mode": request.app.state.settings.agent_mode, "available": getattr(request.app.state, "agent_graph", None) is not None,
+            "llm": {"enabled": llm is not None, "models": llm.models if llm else {}}}
 
 
 @router.post("/chat")

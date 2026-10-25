@@ -25,6 +25,7 @@ class AgentDeps:
     actor: Principal
     cap: capabilities.Capability
     voice: bool = False
+    llm: Any = None                      # app.agents.llm.LLM, or None when LLM agents are disabled
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex)
 
 

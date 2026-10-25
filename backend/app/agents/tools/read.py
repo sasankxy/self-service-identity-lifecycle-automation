@@ -110,3 +110,41 @@ async def explain_entitlement_origin(ctx, a: S.ExplainEntitlementOrigin) -> dict
                                    "decision_comment": (ap.decision_comment or "")[:200] if ap else None}
         out.append(item)
     return {"identity": {"id": str(ident.id), "name": ident.full_name}, "department": dept.name if dept else None, "entitlements": out}
+
+
+async def get_request_details(ctx, a: S.GetRequestDetails) -> dict:
+    """Facts for the Approver Copilot. Deterministic; the copilot only words and weighs them."""
+    from app.models import LifecycleRequestEntitlement, RiskAssessment, User
+    from app.services import policy
+    req = (await ctx.db.execute(select(LifecycleRequest).where(LifecycleRequest.ref_no == a.ref_no))).scalar_one_or_none()
+    if not req:
+        from app.core.errors import ApiError
+        raise ApiError(404, "not_found", f"REQ-{a.ref_no} does not exist.")
+    ident = await ctx.db.get(Identity, req.identity_id)
+    from_d = await ctx.db.get(Department, req.from_department_id) if req.from_department_id else None
+    to_d = await ctx.db.get(Department, req.to_department_id) if req.to_department_id else None
+    ref_dept_id = (to_d or from_d).id if (to_d or from_d) else ident.department_id
+    baseline = set((await ctx.db.execute(
+        select(AccessProfileEntitlement.entitlement_id).join(AccessProfile, AccessProfile.id == AccessProfileEntitlement.access_profile_id)
+        .where(AccessProfile.department_id == ref_dept_id))).scalars()) if ref_dept_id else set()
+    deltas = (await ctx.db.execute(select(Entitlement, LifecycleRequestEntitlement.action)
+                                   .join(LifecycleRequestEntitlement, LifecycleRequestEntitlement.entitlement_id == Entitlement.id)
+                                   .where(LifecycleRequestEntitlement.request_id == req.id))).all()
+    held = set(await policy._held(ctx.db, ident.id))
+    adds = {e.id for e, act in deltas if act == "add"}
+    sod_hits = [name for name, ids in await policy._sod_policies(ctx.db) if ids and ids <= (held | adds) and not ids <= held]
+    ap = (await ctx.db.execute(select(ApprovalRequest).where(ApprovalRequest.lifecycle_request_id == req.id))).scalars().first()
+    risk = (await ctx.db.execute(select(RiskAssessment).where(RiskAssessment.lifecycle_request_id == req.id))).scalars().first()
+    decider = await ctx.db.get(User, ap.decided_by) if ap and ap.decided_by else None
+    return {"ref": f"REQ-{req.ref_no}", "type": req.request_type, "status": req.status,
+            "identity": {"name": ident.full_name, "state": ident.lifecycle_state, "risk_score": ident.risk_score,
+                         "risk_level": stats.risk_level(ident.risk_score)},
+            "from_department": from_d.name if from_d else None, "to_department": to_d.name if to_d else None,
+            "effective_date": req.effective_date.isoformat() if req.effective_date else None,
+            "requested_by": req.requester_name, "justification": (req.justification or "")[:300],
+            "changes": [{"action": act, "entitlement": e.name, "application": e.application, "risk_level": e.risk_level,
+                         "in_baseline": e.id in baseline, "requires_approval": e.requires_approval} for e, act in deltas],
+            "separation_of_duties_conflicts": sod_hits,
+            "requester_flags": await policy.requester_flags(ctx.db, req.requested_by) if req.requested_by else [],
+            "risk_triggers": [t.get("label") for t in (risk.triggers or [])] if risk else [],
+            "approval": {"status": ap.status, "priority": ap.priority, "decided_by": decider.email if decider else None} if ap else None}

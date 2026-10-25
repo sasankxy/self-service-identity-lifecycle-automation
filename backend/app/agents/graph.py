@@ -30,7 +30,9 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
-from app.agents import contract, deps as D, narrator, planner
+import asyncio
+
+from app.agents import contract, deps as D, llm_agents, narrator, planner
 from app.agents.contract import ToolCall
 from app.agents.gateway import ActionGateway, ToolContext
 from app.agents.security import injection
@@ -43,6 +45,8 @@ from app.services.cache import invalidate
 
 WHY_RE = re.compile(r"^\s*why\s+(?:(?:does|do|did|is|has)\s+)?(?P<who>.+?)\s+(?:still\s+)?(?:have|has|hold|holds|got|get)\s+"
                     r"(?:access\s+to\s+|the\s+)?(?P<what>.+?)(?:\s+(?:access|rights|permissions?|role|entitlement))?\s*\??\s*$", re.IGNORECASE)
+COPILOT_RE = re.compile(r"\b(?:brief|should\s+(?:i|we)\s+(?:approve|reject)|assess|analy[sz]e|review|summary|summari[sz]e|explain)\b"
+                        r".*?\bREQ[-\s]?(?P<ref>\d{1,8})\b", re.IGNORECASE)
 PRONOUN_RE = re.compile(r"\b(he|him|his|she|her|hers|they|them|their)\b", re.IGNORECASE)
 SOURCE = {"blocked": "Blocked by the agent's input guard (no model was used).",
           "memory": "Conversation memory (this chat only).",
@@ -67,6 +71,8 @@ class ChatState(TypedDict, total=False):
     plan: dict | None            # {"plan_id", "steps": [ToolCall dicts], "decisions": [...]}, awaiting confirmation
     clauses: list[dict] | None   # NLU results of a compound request, one per clause
     investigation: dict | None   # {"who", "what"} of a "why does X have Y?" question
+    nlu_pre: dict | None         # NLU result computed in parallel with the sentinel's model check
+    copilot_ref: int | None      # REQ number the approver copilot should brief
     result: dict | None
     blocks: list[dict]
     source: str
@@ -92,22 +98,33 @@ async def sentinel(state: ChatState) -> dict:
     t0, dep = time.perf_counter(), D.current()
     clean, flags = sanitize(state.get("text") or "")
     v = injection.scan(clean)
-    fresh = {"text": clean, "nlu": None, "intent": None, "via": None, "plan": None, "clauses": None, "investigation": None, "result": None, "blocks": [],
-             "trace": []}
+    fresh = {"text": clean, "nlu": None, "intent": None, "via": None, "plan": None, "clauses": None, "investigation": None, "result": None,
+             "nlu_pre": None, "copilot_ref": None, "blocks": [], "trace": []}
+    score = None
     if not v.blocked:
-        return {**fresh, "route": "understand", "trace": [{"node": "sentinel", "ms": round((time.perf_counter() - t0) * 1000, 1),
-                                                            "flags": flags, "blocked": False}]}
+        # fan out: the guard model judges the text while the NLU already parses it (the parse is discarded if blocked)
+        score, pre = await asyncio.gather(dep.llm.injection_score(clean) if dep.llm else _none(), nlu.parse(clean, date.today()))
+        threshold = getattr(dep.settings, "agent_guard_threshold", 0.9) if dep.settings else 0.9
+        if score is None or score < threshold:
+            return {**fresh, "nlu_pre": pre, "route": "understand",
+                    "trace": [{"node": "sentinel", "ms": round((time.perf_counter() - t0) * 1000, 1), "flags": flags, "blocked": False,
+                               "guard_score": None if score is None else round(score, 4)}]}
+        v = injection.Verdict(blocked=True, rules=("llm_guard",))
     async with dep.sessionmaker() as db:
         audit.record(db, dep.request, "agent.guard_block", actor_id=dep.actor.id, actor_label=dep.actor.email, severity="medium",
                      outcome="failure", category="risk_alert",
-                     details={"rules": list(v.rules), "flags": flags, "text": clean[:200], "trace_id": dep.trace_id})
+                     details={"rules": list(v.rules), "flags": flags, "text": clean[:200], "trace_id": dep.trace_id, "guard_score": score})
         await db.commit()
     return {**fresh, "route": "end", "source": SOURCE["blocked"],
             "blocks": [narrator.text("I can't act on that request. It looks like an attempt to change how I work or to bypass "
                                      "approvals, so it was blocked and logged."),
                        narrator.text("Ask about a person's access, a department move, an access request or an offboarding instead.")],
             "trace": [{"node": "sentinel", "ms": round((time.perf_counter() - t0) * 1000, 1), "flags": flags, "blocked": True,
-                       "rules": list(v.rules)}]}
+                       "rules": list(v.rules), "guard_score": score}]}
+
+
+async def _none():
+    return None
 
 
 async def understand(state: ChatState) -> dict:
@@ -115,6 +132,9 @@ async def understand(state: ChatState) -> dict:
     t0, A = time.perf_counter(), _assistant()
     text_in, pending, via = state["text"], state.get("pending"), None
     if not pending:
+        c = COPILOT_RE.search(text_in)
+        if c:
+            return {"route": "copilot", "copilot_ref": int(c["ref"]), "trace": _step(state, "understand", t0, intent="BRIEF")}
         m = WHY_RE.match(text_in)
         if m:
             return {"route": "investigate", "investigation": {"who": m["who"].strip(), "what": m["what"].strip(" .?")},
@@ -123,7 +143,7 @@ async def understand(state: ChatState) -> dict:
         if clauses:
             return {"route": "multi", "clauses": clauses, "pending": None,
                     "trace": _step(state, "understand", t0, intent="COMPOUND", steps=[c["intent"]["label"] for c in clauses])}
-    res = await nlu.parse(text_in, date.today())
+    res = state.get("nlu_pre") or await nlu.parse(text_in, date.today())
 
     if pending:
         s0 = (res or {}).get("slots", {})
@@ -147,8 +167,21 @@ async def understand(state: ChatState) -> dict:
         res, resolved = A._resolve_pronoun(res, state.get("last_person"))
         via = "pronoun" if resolved else None
 
+    llm = D.current().llm
+    if llm and via is None and scope.in_scope(text_in, res):
+        if res and (any("more than one request" in q for q in res.get("clarification_questions") or []) or _mixed_actions(text_in) >= 2):
+            steps = await llm_agents.decompose(llm, text_in, nlu.catalogue(), state.get("last_person"), A._REQUIRED, date.today())
+            if steps and all(r["status"] == "PARSED" for r in steps):
+                return {"route": "multi", "clauses": steps, "pending": None,
+                        "trace": _step(state, "understand", t0, intent="COMPOUND", via="llm_planner", steps=[r["intent"]["label"] for r in steps])}
+        weak = not nlu.is_actionable(res) or (res or {}).get("status") == "NEEDS_CLARIFICATION"
+        if weak:   # the NLU is unsure: ask the extractor agent; keep its reading only if it is more complete
+            ext = await llm_agents.extract(llm, text_in, nlu.catalogue(), state.get("last_person"), A._REQUIRED, date.today())
+            if ext and nlu.is_actionable(ext) and (not nlu.is_actionable(res) or len(ext["missing_fields"]) < len(res.get("missing_fields") or [])):
+                res, via = ext, "llm_extractor"
+
     lifecycle_turn = nlu.is_actionable(res) or A._pronoun_unresolved(res)
-    intent = contract.from_nlu(res, D.current().actor.id) if lifecycle_turn else None
+    intent = contract.from_nlu(res, D.current().actor.id, source="slm" if via == "llm_extractor" else "nlu") if lifecycle_turn else None
     return {"nlu": res, "via": via, "pending": pending, "intent": intent.model_dump(mode="json") if intent else None,
             "route": "lifecycle" if lifecycle_turn else "directory",
             "trace": _step(state, "understand", t0, intent=(res or {}).get("intent", {}).get("label"), via=via,
@@ -179,6 +212,26 @@ async def _compound(text_in: str, last_person: dict | None) -> list[dict] | None
         prev = {"name": s.get("person"), "employee_id": s.get("employee_id")}
         out.append(r)
     return out
+
+
+_ACTION_CUES = {
+    "move": re.compile(r"\b(?:move|moving|moves|transfer\w*|shift\w*|relocat\w*)\b", re.IGNORECASE),
+    "grant": re.compile(r"\b(?:give|grant|add|provide|needs?|wants?)\b", re.IGNORECASE),
+    "revoke": re.compile(r"\b(?:remove|revoke|take away|must go|drop|disable|cut off|no longer)\b", re.IGNORECASE),
+    "leave": re.compile(r"\b(?:offboard|terminate|deprovision|leaving|last day)\b", re.IGNORECASE),
+}
+
+
+def _mixed_actions(text_in: str) -> int:
+    """How many different kinds of change a message mentions; two or more means the planner agent should decompose it."""
+    return sum(1 for rx in _ACTION_CUES.values() if rx.search(text_in))
+
+
+async def _summarised(blocks: list[dict], facts: dict) -> list[dict]:
+    """Narrator agent: prepend a grounded one-line summary when an LLM is available; unchanged blocks otherwise."""
+    llm = D.current().llm
+    s = await llm_agents.narrate(llm, facts) if llm else None
+    return ([narrator.ai(s)] if s else []) + blocks
 
 
 def _dropped_blocks(dropped: dict) -> list[dict]:
@@ -260,13 +313,20 @@ async def lifecycle(state: ChatState) -> dict:
         return out(blocks + card + narrator.error_blocks(result), tool=call.tool, error=result["error"], outcome="error")
     if label == "ACCESS_STATUS_QUERY":
         what = ", ".join((s.get("applications") or []) + (s.get("access_roles") or []))
-        return out(card + [narrator.head(f"Current access to {what}" if what else "Current access"),
-                           narrator.bullets(result["data"]["access"] or ["No matching active or pending access."])], tool=call.tool, outcome="read")
+        access = result["data"]["access"] or ["No matching active or pending access."]
+        lead = await _summarised([], {"question": f"access of {who_name}" + (f" to {what}" if what else ""), "access": access})
+        return out(lead + card + [narrator.head(f"Current access to {what}" if what else "Current access"), narrator.bullets(access)],
+                   tool=call.tool, outcome="read")
 
     data = result["data"]
     src = s.get("source_department")
     if label == "MOVER" and src and data.get("from_department") and src.lower() != data["from_department"].lower():
         blocks.append(narrator.text(f"Heads-up: the directory has {who_name} in {data['from_department']}, not {src}."))
+    blocks = await _summarised(blocks, {"request": label.lower(), "person": who_name, "decision": result["decision"],
+                                        "reasons": result["reasons"], "from_department": data.get("from_department"),
+                                        "to_department": data.get("to_department"), "add": [a["name"] for a in data.get("add") or []],
+                                        "remove": data.get("remove"), "questions": data.get("questions"),
+                                        "effective_date": data.get("effective_date")})
     blocks += card + narrator.preview_blocks(result)
     if data.get("choices"):
         c = data["choices"][0]
@@ -345,6 +405,12 @@ async def multi(state: ChatState) -> dict:
     if overall not in (policy.AUTO, policy.APPROVAL):
         return done([narrator.text("Nothing was submitted. Fix the step above, or send the changes separately.")], outcome=overall)
     plan = {"plan_id": plan_id, "steps": [c.model_dump(mode="json") for c in steps], "decisions": decisions}
+    blocks[:0] = await _summarised([], {"plan": [{"person": n, "tool": c.tool, "decision": r["decision"],
+                                                  "to_department": (r["data"] or {}).get("to_department"),
+                                                  "add": [a["name"] for a in (r["data"] or {}).get("add") or []],
+                                                  "remove": (r["data"] or {}).get("remove")}
+                                                 for (_, n, c, _d), r in zip([x for x in resolved if x[2] in steps], previews)],
+                                        "overall_decision": overall, "verifier": why})
     return done(narrator.confirm_blocks(plan_id, overall, None, True), route="confirm", plan=plan, outcome="awaiting_confirmation",
                 decision=overall)
 
@@ -374,7 +440,42 @@ async def investigate(state: ChatState) -> dict:
         r = (await ActionGateway().run(_gateway_ctx(db, dep, state["text"], dep.cap.narrowed(targets={str(matches[0].id)})), call)).model_dump(mode="json")
     if not r["ok"]:
         return done(narrator.error_blocks(r), outcome="error", error=r["error"])
-    return done(narrator.origin_blocks(r["data"]), outcome="read", tool=call.tool, found=len(r["data"]["entitlements"]))
+    blocks = narrator.origin_blocks(r["data"])
+    advice = await llm_agents.investigate(dep.llm, r["data"]) if dep.llm and r["data"]["entitlements"] else None
+    if advice:
+        blocks += narrator.advice_blocks("Reviewer", advice)
+    return done(blocks, outcome="read", tool=call.tool, found=len(r["data"]["entitlements"]),
+                recommendation=advice["recommendation"] if advice else None)
+
+
+async def copilot(state: ChatState) -> dict:
+    """Approver Copilot: deterministic facts about REQ-n (read tool) + an LLM recommendation. Advice only; it never decides."""
+    t0, dep, ref = time.perf_counter(), D.current(), state["copilot_ref"]
+
+    def done(blocks, **kw):
+        return {"blocks": blocks, "route": "end", "source": SOURCE["agent"], "trace": _step(state, "copilot", t0, **kw)}
+
+    call = ToolCall(tool="get_request_details", args={"ref_no": ref}, proposed_by="copilot")
+    async with dep.sessionmaker() as db:
+        r = (await ActionGateway().run(_gateway_ctx(db, dep, state["text"]), call)).model_dump(mode="json")
+    if not r["ok"]:
+        return done(narrator.error_blocks(r), outcome="error", error=r["error"])
+    f = r["data"]
+    blocks = [narrator.head(f"{f['ref']}: {f['type']} for {f['identity']['name']} ({f['status']})"), narrator.kv([
+        ("Person risk", f"{f['identity']['risk_score']}/100 ({f['identity']['risk_level']})"),
+        ("Department", " → ".join(x for x in (f["from_department"], f["to_department"]) if x) or None),
+        ("Requested by", f["requested_by"]), ("Justification", f"“{f['justification']}”" if f["justification"] else None),
+        ("Changes", "; ".join(f"{c['action']} {c['entitlement']} ({c['risk_level']}{', outside baseline' if not c['in_baseline'] else ''})"
+                              for c in f["changes"]) or "none"),
+        ("SoD conflicts", ", ".join(f["separation_of_duties_conflicts"]) or "none"),
+        ("Requester flags", "; ".join(f["requester_flags"]) or "none"),
+        ("Approval", f"{f['approval']['status']} ({f['approval']['priority']})" if f["approval"] else None)])]
+    advice = await llm_agents.brief(dep.llm, f) if dep.llm else None
+    if advice:
+        blocks += narrator.advice_blocks("Copilot", advice)
+    if f["approval"] and f["approval"]["status"] == "pending":
+        blocks.append({"type": "action", "label": "Open approvals queue", "action": "nav:approvals"})
+    return done(blocks, outcome="brief", recommendation=advice["recommendation"] if advice else None)
 
 
 def _is_employee_id(v: str) -> bool:
@@ -411,6 +512,9 @@ async def confirm(state: ChatState) -> dict:
     if any(r["ok"] for r in results) and dep.request is not None:
         await invalidate(dep.request)
     last = results[-1]
+    blocks = await _summarised(blocks, {"submitted": [{"ref": r.get("audit_ref"), "decision": r.get("decision"),
+                                                      "applied": (r.get("data") or {}).get("applied")} for r in results if r["ok"]],
+                                        "failed": [r.get("error") for r in results if not r["ok"]]})
     return {"blocks": blocks, "result": last, "plan": None, "source": SOURCE["agent"],
             "trace": _step(state, "confirm", t0, outcome="committed" if all(r["ok"] for r in results) else last["error"],
                            steps=len(results), refs=[r.get("audit_ref") for r in results if r["ok"]])}
@@ -428,13 +532,15 @@ def build(checkpointer: Any):
     g.add_node("lifecycle", lifecycle)
     g.add_node("multi", multi)
     g.add_node("investigate", investigate)
+    g.add_node("copilot", copilot)
     g.add_node("confirm", confirm)
     g.add_edge(START, "sentinel")
     g.add_conditional_edges("sentinel", _route, {"understand": "understand", "end": END})
     g.add_conditional_edges("understand", _route, {"lifecycle": "lifecycle", "directory": "directory", "multi": "multi",
-                                                   "investigate": "investigate", "end": END})
+                                                   "investigate": "investigate", "copilot": "copilot", "end": END})
     g.add_conditional_edges("multi", _route, {"confirm": "confirm", "end": END})
     g.add_edge("investigate", END)
+    g.add_edge("copilot", END)
     g.add_edge("directory", END)
     g.add_conditional_edges("lifecycle", _route, {"confirm": "confirm", "end": END})
     g.add_edge("confirm", END)

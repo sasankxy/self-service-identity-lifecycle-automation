@@ -497,6 +497,26 @@
         "type": "object"
       }
     },
+    "get_request_details": {
+      "description": "Everything an approver needs about one lifecycle request: changes and their risk, baseline fit, the person's risk, the requester's recent history, approval state.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "ref_no": {
+            "maximum": 10000000,
+            "minimum": 1,
+            "title": "Ref No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ref_no"
+        ],
+        "title": "GetRequestDetails",
+        "type": "object"
+      }
+    },
     "inspect_user_access": {
       "description": "Current active and pending access of one identity, optionally filtered to applications or entitlement names.",
       "kind": "read",
@@ -780,5 +800,5 @@
       }
     }
   },
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

@@ -107,3 +107,18 @@ def origin_blocks(d: dict) -> list[dict]:
     if risky:
         blocks.append(text("High-risk access outside the department baseline is a privilege-creep signal; consider an access review."))
     return blocks
+
+
+def ai(summary: str) -> dict:
+    """A model-written sentence, labelled as such. Only produced after a grounding check against the facts it summarises."""
+    return {"type": "text", "text": f"AI summary: {summary}"}
+
+
+ADVICE = {"keep": "Keep", "review": "Review", "revoke": "Consider revoking", "approve": "Approve", "reject": "Reject",
+          "request_more_info": "Ask the requester for more information"}
+
+
+def advice_blocks(title: str, out: dict) -> list[dict]:
+    return [head(f"{title} (AI, advisory): {ADVICE.get(out['recommendation'], out['recommendation'])}"), text(out["summary"])] + \
+           ([bullets(out["reasons"])] if out.get("reasons") else []) + \
+           [text("This recommendation is advisory; the decision and every change still go through policy and a human.")]

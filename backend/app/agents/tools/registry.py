@@ -42,6 +42,9 @@ _SPECS = [
              "entitlement: how it was granted (access profile or request), who requested and approved it, whether it is in the "
              "department baseline.", target_arg="identity_id", run=read.explain_entitlement_origin,
              catalogue=(("entitlement", "entitlements"), ("application", "applications"))),
+    ToolSpec("get_request_details", S.GetRequestDetails, "read", "approvals:read", "Everything an approver needs about one lifecycle "
+             "request: changes and their risk, baseline fit, the person's risk, the requester's recent history, approval state.",
+             run=read.get_request_details),
     ToolSpec("list_pending_requests", S.ListPendingRequests, "read", "approvals:read", "Lifecycle requests waiting for approval.",
              run=read.list_pending_requests),
     ToolSpec("provision_user", S.ProvisionUser, "write", "identities:write", "Onboard a new joiner with a department access profile. "

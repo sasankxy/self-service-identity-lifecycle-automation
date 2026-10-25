@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ASYMMETRIC_ALGS = {"RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "EdDSA"}
@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     # --- agent layer (app/agents) ---
     agent_mode: Literal["legacy", "graph"] = "legacy"            # which assistant the chat UI uses; /agent/* is always served
     agent_checkpointer: Literal["postgres", "memory"] = "postgres"   # conversation state store (tests always use memory)
+    # LLM agents: any OpenAI-compatible API (Groq by default). Disabled or no key => deterministic behaviour only.
+    agent_llm_enabled: bool = False
+    agent_llm_base_url: str = "https://api.groq.com/openai/v1"
+    agent_llm_api_key: SecretStr | None = None
+    agent_model_default: str = "openai/gpt-oss-120b"                  # extractor, planner, investigator, copilot
+    agent_model_fast: str = "openai/gpt-oss-20b"                      # narrator
+    agent_model_guard: str = "meta-llama/llama-prompt-guard-2-86m"    # sentinel (prompt-injection classifier)
+    agent_models: str = ""                                            # per-role overrides: "planner=qwen/qwen3.8-27b,..."
+    agent_llm_timeout_s: float = Field(20.0, ge=1, le=120)
+    agent_llm_max_calls: int = Field(6, ge=0, le=20)                  # per chat turn
+    agent_guard_threshold: float = Field(0.9, gt=0, le=1)             # sentinel blocks at or above this injection probability
 
     # --- JWT ---
     jwt_algorithm: str = "HS256"
