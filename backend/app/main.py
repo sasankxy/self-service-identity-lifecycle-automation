@@ -11,7 +11,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from app.api.v1 import admin, approvals, assistant, audit_logs, auth, dashboard, governance, identities, meta, risk
+from app.agents import checkpoint, graph as agent_graph
+from app.api.v1 import admin, agent, approvals, assistant, audit_logs, auth, dashboard, governance, identities, meta, risk
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.services import nlu, scheduler
@@ -36,7 +37,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             nlu.configure(await nlu.load_catalogue(db))      # NLU vocabulary = the directory's departments/apps/entitlements
         await run_in_threadpool(nlu.warm_up)      # load NLU models once; failure only disables the NLU layer
         app.state.scan_task = scheduler.start(app, settings)      # proactive governance loop (None when disabled / ENV=test)
+        saver, close_saver = await checkpoint.open_checkpointer(settings)
+        app.state.agent_graph = agent_graph.build(saver)          # multi-agent conversation graph (/api/v1/agent/*)
         yield
+        if close_saver:
+            await close_saver()
         if app.state.scan_task:
             app.state.scan_task.cancel()
             await asyncio.gather(app.state.scan_task, return_exceptions=True)
@@ -79,7 +84,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return status
 
     app.include_router(auth.router, prefix="/api/v1")
-    for r in (admin, approvals, assistant, audit_logs, dashboard, governance, identities, meta, risk):
+    for r in (admin, agent, approvals, assistant, audit_logs, dashboard, governance, identities, meta, risk):
         app.include_router(r.router, prefix="/api/v1")
 
     frontend = Path(settings.frontend_dir)

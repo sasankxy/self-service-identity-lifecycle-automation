@@ -119,3 +119,18 @@ text -> custom NLU (backend/nlu: rules + CRF + NB, vocabulary loaded from the di
 * **Experiment**: `python -m nlu.evaluation.compare_slm --model qwen2.5:3b --show-failures` (custom engine vs SLM: intent accuracy, entity P/R/F1,
   latency, hallucination rate).
 * Vocabulary bridge to edit: `DEPT_ALIASES` / `APP_ALIASES` in `app/services/nlu.py`.
+
+## Agent layer: multi-agent pipeline (`backend/app/agents`, `AGENT_MODE=graph`)
+```
+POST /api/v1/agent/chat -> LangGraph conversation graph (state checkpointed in Postgres per user + chat session)
+  sentinel   sanitise + injection/jailbreak detection (blocked turns are audited as agent.guard_block)
+  understand NLU + conversation memory -> typed intent/slots (Integration Contract v1, docs/contract/)
+  lifecycle  resolve person -> ONE whitelisted tool call -> Action Gateway preview (policy engine re-run)
+  confirm    pauses (interrupt) until POST /api/v1/agent/resume {session_id, call_id, confirm}
+             -> Action Gateway commit (policy re-checked) -> lifecycle/onboarding services -> agent.tool_executed audit
+```
+* **Action Gateway** (`agents/gateway.py`) is the only thing that executes a tool: whitelist, strict schema, per-turn capability token,
+  portal permission, catalogue, policy re-evaluation, verifier (self-grant / high-risk grants can only get stricter), idempotency, audit.
+* `AGENT_MODE=legacy` (default) keeps the chat UI on `/assistant/*`; `graph` switches it to `/agent/*`. `AGENT_CHECKPOINTER=memory`
+  keeps conversations in process memory instead of Postgres (tests always use memory).
+* Tests: `pytest tests/agents/unit` (no services), `pytest tests/agents/integration` (Postgres + Redis). CI runs both on every push.

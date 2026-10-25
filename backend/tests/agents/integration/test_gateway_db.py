@@ -9,6 +9,7 @@ from app.core.rbac import ROLES
 from app.models import Identity
 from app.services import policy
 from app.services.accounts import Principal
+from tests.agents.integration.conftest import QUIET_TARGET, bystander
 
 
 @pytest.fixture
@@ -26,20 +27,6 @@ async def agent_ctx(app, make_user):
     yield make
     for s in sessions:
         await s.close()
-
-
-BUSY_DEPTS = ("Engineering", "Finance", "Marketing", "Sales", "Support", "Legal")     # used by other tests / move target
-QUIET_TARGET = "Legal"
-
-
-async def bystander(app, offset: int):
-    """A low-risk active identity no other test touches. Requests created here add risk assessments and pending requests, and
-    tests/test_data_api.py asserts on named seed people (Kai Chen) and picks low-risk people from BUSY_DEPTS."""
-    async with app.state.sessionmaker() as db:
-        return (await db.execute(text(
-            "SELECT i.id FROM identities i JOIN departments d ON d.id = i.department_id WHERE i.lifecycle_state = 'active' "
-            "AND i.risk_score < 40 AND d.name NOT IN (SELECT unnest(CAST(:busy AS text[]))) AND NOT EXISTS (SELECT 1 FROM lifecycle_requests r "
-            "WHERE r.identity_id = i.id AND r.status = 'pending_approval') ORDER BY i.employee_id OFFSET :o LIMIT 1"), {"o": offset, "busy": list(BUSY_DEPTS)})).scalar_one()
 
 
 async def audit_count(app, action):

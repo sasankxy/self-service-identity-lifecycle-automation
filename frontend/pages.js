@@ -406,6 +406,16 @@
           if (b.action.startsWith('nav:')) return navigateTo(b.action.slice(4));
           if (b.action.startsWith('prompt:')) return injectPrompt(b.action.slice(7));
           if (b.action.startsWith('send:')) { injectPrompt(b.action.slice(5)); return $('send-btn').click(); }   // a suggestion button answers the assistant's question
+          if (b.action === 'agent-confirm' || b.action === 'agent-cancel') {   // resumes the paused agent turn; the server re-checks policy
+            const group = [...el.parentNode.querySelectorAll('button')].filter((x) => x._callId === b.call_id);
+            group.forEach((x) => { x.disabled = true; }); el.textContent = 'Working…';
+            try {
+              const r = await api('/agent/resume', { method: 'POST', body: { session_id: window.agentChatSession, call_id: b.call_id, confirm: b.action === 'agent-confirm' } });
+              el.textContent = b.action === 'agent-confirm' ? 'Done' : 'Cancelled'; el.parentNode.after(renderBlocks(r.blocks));
+              if (window.refreshBadges) window.refreshBadges();
+            } catch (e) { group.forEach((x) => { x.disabled = false; }); el.textContent = b.label; el.after(Object.assign(document.createElement('div'), { className: 'kpi-subtext', textContent: e.message })); }
+            return;
+          }
           if (b.action === 'replan') {                      // re-plan with the chosen option; read-only
             el.disabled = true;
             try { const r = await api('/assistant/plan', { method: 'POST', body: b.proposal }); el.after(renderBlocks(r.blocks)); }
@@ -420,7 +430,8 @@
               if (window.refreshBadges) window.refreshBadges();
             } catch (e) { el.disabled = false; el.textContent = b.label; el.after(Object.assign(document.createElement('div'), { className: 'kpi-subtext', textContent: e.message })); }
           }
-        }; }
+        };
+        el._callId = b.call_id; }
       if (el) wrap.appendChild(el);
     });
     return wrap;
@@ -430,6 +441,9 @@
     welcomeHtml = box.innerHTML;
     const newSession = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
     let chatSession = newSession();     // the server remembers the last question / person per session
+    window.agentChatSession = chatSession;
+    let agentMode = false;              // AGENT_MODE=graph on the server: use the multi-agent pipeline (/agent/*)
+    api('/agent/status').then((s) => { agentMode = s.mode === 'graph' && s.available; }).catch(() => {});
     const bubble = (cls, node) => { const d = document.createElement('div'); d.className = `chat-bubble chat-bubble--${cls}`; d.append(node); box.appendChild(d); box.scrollTop = box.scrollHeight; return d; };
     async function send() {
       const text = input.value.trim(); if (!text) return;
@@ -438,7 +452,7 @@
       bubble('user', document.createTextNode(text)); input.value = ''; input.style.height = 'auto';
       const wait = bubble('bot', document.createTextNode('Looking that up…'));
       try {
-        const r = await api('/assistant/query', { method: 'POST', body: { query: text, session_id: chatSession, input_mode: mode } });
+        const r = await api(agentMode ? '/agent/chat' : '/assistant/query', { method: 'POST', body: { query: text, session_id: chatSession, input_mode: mode } });
         const out = renderBlocks(r.blocks); const src = document.createElement('div'); src.className = 'kpi-subtext'; src.style.marginTop = '.5rem'; src.textContent = r.source; out.appendChild(src);
         wait.replaceChildren(out);
       } catch (e) { wait.textContent = `Request failed: ${e.message}`; }
@@ -447,7 +461,7 @@
     $('send-btn').addEventListener('click', send);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
     input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 100) + 'px'; });
-    $('new-chat-btn').addEventListener('click', () => { box.innerHTML = welcomeHtml; chatSession = newSession(); });
+    $('new-chat-btn').addEventListener('click', () => { box.innerHTML = welcomeHtml; chatSession = newSession(); window.agentChatSession = chatSession; });
   }
   async function loadSaved() {
     const ul = $('chat-history');

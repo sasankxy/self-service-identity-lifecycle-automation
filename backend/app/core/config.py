@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5:3b"
     slm_timeout_s: float = 25.0
 
+    # --- agent layer (app/agents) ---
+    agent_mode: Literal["legacy", "graph"] = "legacy"            # which assistant the chat UI uses; /agent/* is always served
+    agent_checkpointer: Literal["postgres", "memory"] = "postgres"   # conversation state store (tests always use memory)
+
     # --- JWT ---
     jwt_algorithm: str = "HS256"
     jwt_secret_key: str = ""            # HS* algorithms
