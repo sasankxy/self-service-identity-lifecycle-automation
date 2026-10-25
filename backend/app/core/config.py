@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     agent_models: str = ""                                            # per-role overrides: "planner=qwen/qwen3.8-27b,..."
     agent_llm_timeout_s: float = Field(20.0, ge=1, le=120)
     agent_llm_max_calls: int = Field(6, ge=0, le=20)                  # per chat turn
+    agent_llm_turn_deadline_s: float = Field(30.0, ge=1, le=300)      # total model time per chat turn; later calls are skipped
+    agent_rate_limit_per_minute: int = Field(30, ge=1, le=1000)       # chat turns per user per minute (protects the LLM quota)
 
     # --- JWT ---
     jwt_algorithm: str = "HS256"

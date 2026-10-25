@@ -72,7 +72,8 @@ def _month_starts(now: datetime, n: int = 6) -> list[datetime]:
 async def dashboard_trends(db: AsyncSession) -> dict:
     now = datetime.now(timezone.utc)
     months = _month_starts(now)
-    rows = (await db.execute(select(func.date_trunc("month", LifecycleRequest.created_at).label("m"), LifecycleRequest.request_type,
+    # bucket in UTC like `months` above; a bare date_trunc would use the database session's time zone and shift buckets
+    rows = (await db.execute(select(func.date_trunc("month", func.timezone("UTC", LifecycleRequest.created_at)).label("m"), LifecycleRequest.request_type,
                                     func.count()).where(LifecycleRequest.created_at >= months[0]).group_by("m", LifecycleRequest.request_type))).all()
     idx = {(r[0].year, r[0].month, r[1]): r[2] for r in rows}
     series = {t: [idx.get((m.year, m.month, t), 0) for m in months] for t in ("joiner", "mover", "leaver", "privilege")}

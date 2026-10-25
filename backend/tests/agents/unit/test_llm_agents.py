@@ -162,3 +162,17 @@ async def test_judge_rejects_malformed_output():
     assert await llm_agents.judge(L.FakeLLM(lambda *a: {"violation": "yes", "category": "none"}), "x") is None
     assert await llm_agents.judge(L.FakeLLM(lambda *a: {"violation": True, "category": "made_up"}), "x") is None
     assert await llm_agents.judge(L.FakeLLM(lambda *a: {"violation": False, "category": "none"}), "x") == {"violation": False, "category": "none"}
+
+
+async def test_turn_deadline_skips_later_calls():
+    import asyncio
+
+    class Slow(L.FakeLLM):
+        async def _chat(self, *a, **k):
+            await asyncio.sleep(0.8)
+            return "{}"
+    L.start_turn(10, deadline_s=1.0)
+    slow = Slow(lambda *a: {})
+    await slow.json("narrator", "s", "u", {})          # uses most of the 1 s turn budget
+    await slow.json("narrator", "s", "u", {})          # under 0.5 s left: skipped, not started
+    assert [c.get("error") for c in L.turn_calls()][-1] == "turn_deadline"

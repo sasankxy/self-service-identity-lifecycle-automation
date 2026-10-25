@@ -471,6 +471,9 @@ class ExecuteIn(BaseModel):
 async def execute(body: ExecuteIn, request: Request, db: AsyncSession = Depends(get_db),
                   actor: Principal = Depends(require_permission("identities:write"))):
     """Confirm a proposal. The plan is rebuilt and re-decided here; the browser's idea of the decision is only compared."""
+    if request.app.state.settings.agent_mode == "graph":
+        # one write path: with the agent layer on, changes go through the Action Gateway (verifier, capability, idempotency)
+        raise ApiError(409, "use_agent", "The assistant now submits changes through the agent pipeline. Please ask again.")
     plan = await _plan_from(db, body.proposal, actor)
     if plan.decision != body.expected_decision:
         raise ApiError(409, "policy_changed", f"The policy outcome changed to “{plan.decision}” since you reviewed it. Ask again to see the new plan.")

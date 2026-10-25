@@ -15,6 +15,7 @@ the planner from quarantined slots and executed only by the Action Gateway.
 """
 from __future__ import annotations
 
+import asyncio
 import contextvars
 import json
 import logging
@@ -33,18 +34,19 @@ FAST_ROLES = {"narrator"}
 @dataclass
 class TurnBudget:
     max_calls: int
+    deadline: float = float("inf")          # time.monotonic() after which no further model calls are made this turn
     calls: list[dict] = field(default_factory=list)
 
     @property
     def exhausted(self) -> bool:
-        return sum(1 for c in self.calls if c.get("error") not in ("budget_exhausted", "circuit_open")) >= self.max_calls
+        return sum(1 for c in self.calls if c.get("error") not in ("budget_exhausted", "circuit_open", "turn_deadline")) >= self.max_calls
 
 
 _budget: contextvars.ContextVar[TurnBudget | None] = contextvars.ContextVar("agent_llm_budget", default=None)
 
 
-def start_turn(max_calls: int) -> TurnBudget:
-    b = TurnBudget(max_calls)
+def start_turn(max_calls: int, deadline_s: float | None = None) -> TurnBudget:
+    b = TurnBudget(max_calls, time.monotonic() + deadline_s if deadline_s else float("inf"))
     _budget.set(b)
     return b
 
@@ -103,7 +105,12 @@ class LLM:
             if self.breaker.open:
                 entry["error"] = "circuit_open"
                 return None
-            out = await self._chat(model, messages, response_format, temperature, max_tokens)
+            remaining = budget.deadline - time.monotonic() if budget is not None else self.timeout_s
+            if remaining <= 0.5:
+                entry["error"] = "turn_deadline"
+                return None
+            out = await asyncio.wait_for(self._chat(model, messages, response_format, temperature, max_tokens),
+                                         timeout=min(self.timeout_s, remaining))
             entry["ok"] = True
             self.breaker.record(True)
             return out

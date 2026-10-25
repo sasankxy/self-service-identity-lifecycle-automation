@@ -19,7 +19,10 @@ from app.core import csrf
 from app.core.deps import require_permission
 from app.core.errors import ApiError
 from app.models import Identity
+from redis.exceptions import RedisError
+
 from app.services import memory
+from app.services.ratelimit import RateLimiter
 from app.services.accounts import Principal
 
 router = APIRouter(prefix="/agent", tags=["agent"], dependencies=[Depends(csrf.csrf_protect)])
@@ -59,7 +62,7 @@ async def _own_identity(request: Request, actor: Principal) -> dict | None:
 
 async def _deps(request: Request, actor: Principal, voice: bool = False) -> D.AgentDeps:
     settings = request.app.state.settings
-    agent_llm.start_turn(settings.agent_llm_max_calls)        # per-turn model-call budget (and the call trace)
+    agent_llm.start_turn(settings.agent_llm_max_calls, settings.agent_llm_turn_deadline_s)   # per-turn model budget + call trace
     own = None
     if actor.can("identities:read"):
         cap = capabilities.mint(actor)
@@ -90,8 +93,19 @@ async def status(request: Request, _: Principal = Depends(require_permission("se
             "llm": {"enabled": llm is not None, "models": llm.models if llm else {}}}
 
 
+async def _rate_limit(request: Request, actor: Principal) -> None:
+    s = request.app.state.settings
+    try:
+        ok, retry = await RateLimiter(request.app.state.redis).hit(f"agent:turns:{actor.id}", s.agent_rate_limit_per_minute, 60)
+    except RedisError:
+        raise ApiError(503, "unavailable", "The assistant is temporarily unavailable.")
+    if not ok:
+        raise ApiError(429, "rate_limited", "Too many assistant requests. Please wait a moment.", headers={"Retry-After": str(retry)})
+
+
 @router.post("/chat")
 async def chat(body: ChatIn, request: Request, actor: Principal = Depends(require_permission("self:read"))):
+    await _rate_limit(request, actor)
     graph = _graph(request)
     with D.bound(await _deps(request, actor, voice=body.input_mode == "voice")) as dep:
         out = await graph.ainvoke({"text": body.query, "voice": body.input_mode == "voice"}, _config(actor, body.session_id))
@@ -100,6 +114,7 @@ async def chat(body: ChatIn, request: Request, actor: Principal = Depends(requir
 
 @router.post("/resume")
 async def resume(body: ResumeIn, request: Request, actor: Principal = Depends(require_permission("self:read"))):
+    await _rate_limit(request, actor)
     graph, cfg = _graph(request), _config(actor, body.session_id)
     snap = await graph.aget_state(cfg)
     waiting = [i for t in snap.tasks for i in t.interrupts]
