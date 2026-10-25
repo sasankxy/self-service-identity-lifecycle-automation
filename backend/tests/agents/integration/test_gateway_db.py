@@ -28,14 +28,18 @@ async def agent_ctx(app, make_user):
         await s.close()
 
 
+BUSY_DEPTS = ("Engineering", "Finance", "Marketing", "Sales", "Support", "Legal")     # used by other tests / move target
+QUIET_TARGET = "Legal"
+
+
 async def bystander(app, offset: int):
-    """A low-risk active identity no other test asserts on. Never use named seed people (e.g. Kai Chen): requests created here
-    add risk assessments, and tests/test_data_api.py checks the seeded latest assessment of specific people."""
+    """A low-risk active identity no other test touches. Requests created here add risk assessments and pending requests, and
+    tests/test_data_api.py asserts on named seed people (Kai Chen) and picks low-risk people from BUSY_DEPTS."""
     async with app.state.sessionmaker() as db:
         return (await db.execute(text(
             "SELECT i.id FROM identities i JOIN departments d ON d.id = i.department_id WHERE i.lifecycle_state = 'active' "
-            "AND i.risk_score < 40 AND d.name = 'Engineering' AND NOT EXISTS (SELECT 1 FROM lifecycle_requests r "
-            "WHERE r.identity_id = i.id AND r.status = 'pending_approval') ORDER BY i.employee_id OFFSET :o LIMIT 1"), {"o": offset})).scalar_one()
+            "AND i.risk_score < 40 AND d.name NOT IN (SELECT unnest(CAST(:busy AS text[]))) AND NOT EXISTS (SELECT 1 FROM lifecycle_requests r "
+            "WHERE r.identity_id = i.id AND r.status = 'pending_approval') ORDER BY i.employee_id OFFSET :o LIMIT 1"), {"o": offset, "busy": list(BUSY_DEPTS)})).scalar_one()
 
 
 async def audit_count(app, action):
@@ -45,10 +49,10 @@ async def audit_count(app, action):
 
 async def test_mover_preview_then_commit(app, agent_ctx):
     gw, who = ActionGateway(), await bystander(app, 0)
-    call = ToolCall(tool="modify_user_access", args={"identity_id": str(who), "change": "mover", "to_department": "Finance"})
+    call = ToolCall(tool="modify_user_access", args={"identity_id": str(who), "change": "mover", "to_department": QUIET_TARGET})
     prev = await gw.run(await agent_ctx(), call)
     assert prev.ok and prev.decision in (policy.AUTO, policy.APPROVAL), prev
-    assert prev.data["to_department"] == "Finance"
+    assert prev.data["to_department"] == QUIET_TARGET
     done = await gw.run(await agent_ctx(), call, mode="commit", expected_decision=prev.decision)
     assert done.ok and done.audit_ref.startswith("REQ-")
     assert await audit_count(app, "agent.tool_executed") >= 1
