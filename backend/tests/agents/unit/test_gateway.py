@@ -32,7 +32,8 @@ def make_gateway(plan_decision=policy.AUTO, risk="low", target_email="kai.chen@c
     reg = {"inspect_user_access": ToolSpec("inspect_user_access", S.InspectUserAccess, "read", "self:read", "", "identity_id", run=run,
                                            catalogue=REGISTRY["inspect_user_access"].catalogue),
            "modify_user_access": ToolSpec("modify_user_access", S.ModifyUserAccess, "write", "identities:write", "", "identity_id",
-                                          prepare=prepare, commit=commit, catalogue=REGISTRY["modify_user_access"].catalogue)}
+                                          prepare=prepare, commit=commit, catalogue=REGISTRY["modify_user_access"].catalogue,
+                                          self_permission="self:request")}
     return ActionGateway(reg, catalogue=lambda: CAT), ident
 
 
@@ -178,3 +179,33 @@ async def test_deny_is_never_executed(admin):
     gw, ident = make_gateway(plan_decision=policy.DENY, committed=done)
     r = await gw.run(ctx_for(admin, ident), modify(ident.id), mode="commit", expected_decision=policy.DENY)
     assert r.error == "not_allowed" and not done
+
+
+# ─────────────────────────── self-service (employee role: self:read + self:request)
+async def test_employee_can_request_access_for_self_only_via_approval(employee):
+    done = []
+    gw, me = make_gateway(target_email=employee.email, committed=done)
+    r = await gw.run(ctx_for(employee, me), modify(me.id))
+    assert r.ok and r.decision == policy.APPROVAL and "self_grant" in r.data["verifier_rules"]     # never auto for yourself
+    r = await gw.run(ctx_for(employee, me), modify(me.id), mode="commit", expected_decision=policy.APPROVAL)
+    assert r.ok and done == [policy.APPROVAL]
+
+
+async def test_employee_cannot_touch_someone_else(employee):
+    gw, other = make_gateway(target_email="someone.else@corp.test")
+    ctx = ctx_for(employee, other)
+    r = await gw.run(ctx, modify(other.id))
+    assert r.error == "forbidden" and ctx.db.audit_actions() == ["agent.action_blocked"]
+
+
+async def test_employee_cannot_move_themselves(employee):
+    gw, me = make_gateway(target_email=employee.email)
+    r = await gw.run(ctx_for(employee, me), ToolCall(tool="modify_user_access", args={"identity_id": str(me.id), "change": "mover",
+                                                                                      "to_department": "Finance"}))
+    assert r.error == "forbidden" and "manager" in r.reasons[0]
+
+
+async def test_employee_can_give_up_own_access(employee):
+    gw, me = make_gateway(target_email=employee.email)
+    r = await gw.run(ctx_for(employee, me), modify(me.id, change="access_revocation"))
+    assert r.ok

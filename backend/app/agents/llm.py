@@ -2,8 +2,8 @@
 and hard operational limits.
 
 Every agent that uses a model goes through this module:
-  * per-role model routing     reasoning roles -> AGENT_MODEL_DEFAULT, fast roles -> AGENT_MODEL_FAST, the sentinel -> a
-                               dedicated prompt-injection classifier (AGENT_MODEL_GUARD); AGENT_MODELS="role=model,..." overrides
+  * per-role model routing     reasoning roles -> AGENT_MODEL_DEFAULT, fast roles -> AGENT_MODEL_FAST, the sentinel's policy
+                               judge -> AGENT_MODEL_GUARD; AGENT_MODELS="role=model,..." overrides
   * schema-constrained output  `response_format: json_schema (strict)`; callers still re-validate everything
   * per-turn budget            at most AGENT_LLM_MAX_CALLS model calls per chat turn (stops runaway loops and cost)
   * timeout + circuit breaker  after 3 consecutive failures (timeouts, 429s) models are skipped for 60 s

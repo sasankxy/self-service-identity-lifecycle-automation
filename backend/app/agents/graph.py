@@ -103,24 +103,24 @@ async def sentinel(state: ChatState) -> dict:
     score = None
     if not v.blocked:
         # fan out: the guard model judges the text while the NLU already parses it (the parse is discarded if blocked)
-        score, pre = await asyncio.gather(dep.llm.injection_score(clean) if dep.llm else _none(), nlu.parse(clean, date.today()))
-        threshold = getattr(dep.settings, "agent_guard_threshold", 0.9) if dep.settings else 0.9
-        if score is None or score < threshold:
+        verdict, pre = await asyncio.gather(llm_agents.judge(dep.llm, clean) if dep.llm else _none(), nlu.parse(clean, date.today()))
+        score = None if verdict is None else verdict["category"]
+        if not (verdict and verdict["violation"]):
             return {**fresh, "nlu_pre": pre, "route": "understand",
                     "trace": [{"node": "sentinel", "ms": round((time.perf_counter() - t0) * 1000, 1), "flags": flags, "blocked": False,
-                               "guard_score": None if score is None else round(score, 4)}]}
+                               "guard": score}]}
         v = injection.Verdict(blocked=True, rules=("llm_guard",))
     async with dep.sessionmaker() as db:
         audit.record(db, dep.request, "agent.guard_block", actor_id=dep.actor.id, actor_label=dep.actor.email, severity="medium",
                      outcome="failure", category="risk_alert",
-                     details={"rules": list(v.rules), "flags": flags, "text": clean[:200], "trace_id": dep.trace_id, "guard_score": score})
+                     details={"rules": list(v.rules), "flags": flags, "text": clean[:200], "trace_id": dep.trace_id, "guard": score})
         await db.commit()
     return {**fresh, "route": "end", "source": SOURCE["blocked"],
             "blocks": [narrator.text("I can't act on that request. It looks like an attempt to change how I work or to bypass "
                                      "approvals, so it was blocked and logged."),
                        narrator.text("Ask about a person's access, a department move, an access request or an offboarding instead.")],
             "trace": [{"node": "sentinel", "ms": round((time.perf_counter() - t0) * 1000, 1), "flags": flags, "blocked": True,
-                       "rules": list(v.rules), "guard_score": score}]}
+                       "rules": list(v.rules), "guard": score}]}
 
 
 async def _none():
@@ -238,10 +238,24 @@ def _dropped_blocks(dropped: dict) -> list[dict]:
     return [narrator.text(f"I ignored {k.replace('_', ' ')} I couldn't match to the directory: {', '.join(v)}.") for k, v in dropped.items()]
 
 
+SELF_HELP = ["What access do I have?", "Why do I have Salesforce access?", "I need access to GitHub",
+             "Remove my Zoom access"]
+
+
+def _self_help(lead: str) -> list[dict]:
+    return [narrator.text(lead), narrator.text("You can ask about or change your own access, for example:"), narrator.bullets(SELF_HELP),
+            narrator.text("Requests for new access always go to an approver. Moves and offboarding are requested by your manager or HR.")]
+
+
 async def directory_answer(state: ChatState) -> dict:
     """Non-lifecycle questions: the rule-based assistant's read-only answers (pending approvals, risk lists, name lookups)."""
     t0, dep, A = time.perf_counter(), D.current(), _assistant()
     text_in, pending = state["text"], state.get("pending")
+    if D.self_mode(dep):            # directory analytics and lookups of other people are for the IAM team
+        if state.get("via") == "reask" and pending:
+            return {"blocks": A._reask(pending), "source": SOURCE["memory"], "trace": _step(state, "directory", t0, reask=True)}
+        return {"blocks": _self_help("I can only help with your own access here."), "source": SOURCE["agent"],
+                "trace": _step(state, "directory", t0, outcome="self_service_help")}
     async with dep.sessionmaker() as db:
         blocks, handled = await A._legacy(db, dep.actor, text_in)
     if handled:
@@ -268,6 +282,13 @@ async def lifecycle(state: ChatState) -> dict:
                 "trace": _step(state, "lifecycle", t0, intent=label, **{k: v for k, v in extra.items() if k in ("tool", "decision", "error", "outcome")}),
                 **{k: v for k, v in extra.items() if k == "plan"}}
 
+    if D.self_mode(dep):
+        if label == "JOINER":
+            return out(_self_help("New starters are onboarded by HR or the IAM team."), outcome="self_service_help")
+        if not dep.self_identity:
+            return out([narrator.text("Your login isn't linked to an identity in the directory yet (no active identity uses your "
+                                      "e-mail address), so I can't look up or change access for you. Please contact the IAM team.")],
+                       outcome="self_unlinked")
     async with dep.sessionmaker() as db:
         # clarification, joiners and unresolved names: the assistant's dialogue (read-only, no tool call)
         if res["status"] == "NEEDS_CLARIFICATION" or label == "JOINER":
@@ -295,6 +316,8 @@ async def lifecycle(state: ChatState) -> dict:
             return out(blocks + [narrator.text(f"{len(matches)} identities match. Which one do you mean? You can reply with the name, employee ID, or “the second one”."),
                                  narrator.bullets([f"{m.full_name} <{m.email}> · {m.employee_id}" for m in shown])], outcome="ambiguous_person")
         who: Identity = matches[0]
+        if D.self_mode(dep) and str(who.id) != dep.self_identity["id"]:
+            return out(_self_help("You can only ask about or change your own access."), outcome="self_only")
         ctx["person"] = {"employee_id": who.employee_id, "name": who.full_name}
 
         who_name = who.full_name
@@ -302,10 +325,13 @@ async def lifecycle(state: ChatState) -> dict:
         slots, dropped = quarantine(label, s, nlu.catalogue())   # the planner sees typed slots only, never the text
         blocks += _dropped_blocks(dropped)
         call = planner.plan_call(slots, who.id, plan_id=uuid.uuid4().hex)
-        if REGISTRY[call.tool].kind == "write" and not dep.actor.can("identities:write"):
-            # a read-only role asking for a change is not an attack: explain, don't send it to the gateway (which would block + audit)
-            return out(blocks + card + [narrator.text("Your role can review this but not submit it. Ask an IAM administrator to make the change.")],
-                       tool=call.tool, outcome="read_only_role")
+        self_request = (D.self_mode(dep) and dep.actor.can("self:request") and call.tool == "modify_user_access"
+                        and call.args.get("change") in ("access_request", "access_revocation"))
+        if REGISTRY[call.tool].kind == "write" and not dep.actor.can("identities:write") and not self_request:
+            # a role that can't make this change is not an attack: explain, don't send it to the gateway (which would block + audit)
+            msg = ("Department moves and offboarding are requested by your manager or HR, not through self-service."
+                   if D.self_mode(dep) else "Your role can review this but not submit it. Ask an IAM administrator to make the change.")
+            return out(blocks + card + [narrator.text(msg)], tool=call.tool, outcome="read_only_role")
         cap = dep.cap.narrowed(targets={str(who.id)})          # this turn may only touch the person it resolved
         result = (await ActionGateway().run(_gateway_ctx(db, dep, text_in, cap), call)).model_dump(mode="json")
 
@@ -314,7 +340,8 @@ async def lifecycle(state: ChatState) -> dict:
     if label == "ACCESS_STATUS_QUERY":
         what = ", ".join((s.get("applications") or []) + (s.get("access_roles") or []))
         access = result["data"]["access"] or ["No matching active or pending access."]
-        lead = await _summarised([], {"question": f"access of {who_name}" + (f" to {what}" if what else ""), "access": access})
+        lead = await _summarised([], {"note": "this answer only looked up data; nothing was requested or changed",
+                                      "person": who_name, "filter": what or None, "current_access": access})
         return out(lead + card + [narrator.head(f"Current access to {what}" if what else "Current access"), narrator.bullets(access)],
                    tool=call.tool, outcome="read")
 
@@ -333,7 +360,7 @@ async def lifecycle(state: ChatState) -> dict:
         ctx["pending"] = {"label": label, "slots": s, "ask": c["ask"], "app": c.get("app"), "options": c["options"],
                           "question": (data.get("questions") or ["Which one?"])[0]}
     if result["decision"] in (policy.AUTO, policy.APPROVAL):
-        can_write = dep.actor.can("identities:write")
+        can_write = dep.actor.can("identities:write") or self_request
         blocks += narrator.confirm_blocks(call.plan_id, result["decision"], data.get("effective_date"), can_write)
         if can_write:
             return out(blocks, route="confirm", tool=call.tool, decision=result["decision"],
@@ -353,8 +380,9 @@ async def multi(state: ChatState) -> dict:
                 **({"plan": kw["plan"]} if "plan" in kw else {})}
 
     if not dep.actor.can("identities:write"):
-        return done([narrator.text("Your role can review access but not submit changes. Ask an IAM administrator to make them.")],
-                    outcome="read_only_role")
+        msg = ("Please send your changes one at a time, for example “I need access to GitHub”." if D.self_mode(dep)
+               else "Your role can review access but not submit changes. Ask an IAM administrator to make them.")
+        return done([narrator.text(msg)], outcome="read_only_role")
     async with dep.sessionmaker() as db:
         resolved = []
         for i, res in enumerate(clauses, 1):
@@ -432,6 +460,12 @@ async def investigate(state: ChatState) -> dict:
     async with dep.sessionmaker() as db:
         slots, _ = quarantine("ACCESS_STATUS_QUERY", {"person": who} if not _is_employee_id(who) else {"employee_id": who}, cat)
         matches = await directory.resolve_identities(db, dep.actor, {"person": slots.person, "employee_id": slots.employee_id})
+        if D.self_mode(dep):          # self-service: "why do I have X" (or their own name) only
+            matches = [m for m in matches if dep.self_identity and str(m.id) == dep.self_identity["id"]] if matches else []
+            if not matches and dep.self_identity and who.lower() in ("i", "me", "my", "myself"):
+                matches = [await db.get(Identity, uuid.UUID(dep.self_identity["id"]))]
+            if not matches:
+                return done(_self_help("You can only ask about your own access."), outcome="self_only")
         if len(matches) != 1:
             return done([narrator.text(f"I couldn't find “{who[:80]}”." if not matches else f"“{who[:80]}” matches {len(matches)} people; "
                                        "add a surname or employee ID.")], outcome="unresolved_person")
@@ -454,6 +488,9 @@ async def copilot(state: ChatState) -> dict:
 
     def done(blocks, **kw):
         return {"blocks": blocks, "route": "end", "source": SOURCE["agent"], "trace": _step(state, "copilot", t0, **kw)}
+
+    if not dep.actor.can("approvals:read"):
+        return done(_self_help("Request briefings are for approvers."), outcome="self_only")
 
     call = ToolCall(tool="get_request_details", args={"ref_no": ref}, proposed_by="copilot")
     async with dep.sessionmaker() as db:

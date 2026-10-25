@@ -12,11 +12,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Request
 from langgraph.types import Command
 from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 
 from app.agents import capabilities, deps as D, llm as agent_llm
 from app.core import csrf
 from app.core.deps import require_permission
 from app.core.errors import ApiError
+from app.models import Identity
 from app.services import memory
 from app.services.accounts import Principal
 
@@ -46,12 +48,27 @@ def _config(actor: Principal, session_id: str) -> dict:
     return {"configurable": {"thread_id": f"{actor.id}:{session_id}"}}
 
 
-def _deps(request: Request, actor: Principal, voice: bool = False) -> D.AgentDeps:
+async def _own_identity(request: Request, actor: Principal) -> dict | None:
+    """Self-service link: the directory identity whose e-mail is the portal login's e-mail (most recent, not terminated)."""
+    async with request.app.state.sessionmaker() as db:
+        i = (await db.execute(select(Identity).where(func.lower(Identity.email) == actor.email.lower(),
+                                                     Identity.lifecycle_state != "terminated")
+                              .order_by(Identity.created_at.desc()).limit(1))).scalar_one_or_none()
+    return {"id": str(i.id), "name": i.full_name, "employee_id": i.employee_id} if i else None
+
+
+async def _deps(request: Request, actor: Principal, voice: bool = False) -> D.AgentDeps:
     settings = request.app.state.settings
     agent_llm.start_turn(settings.agent_llm_max_calls)        # per-turn model-call budget (and the call trace)
+    own = None
+    if actor.can("identities:read"):
+        cap = capabilities.mint(actor)
+    else:                                                     # self-service: the capability covers the caller's own identity only
+        own = await _own_identity(request, actor)
+        cap = capabilities.mint(actor, targets={own["id"]} if own else set())
     return D.AgentDeps(sessionmaker=request.app.state.sessionmaker, redis=request.app.state.redis, settings=settings,
-                       request=request, actor=actor, cap=capabilities.mint(actor), voice=voice,
-                       llm=getattr(request.app.state, "agent_llm", None))
+                       request=request, actor=actor, cap=cap, voice=voice, llm=getattr(request.app.state, "agent_llm", None),
+                       self_identity=own)
 
 
 def _reply(out: dict, dep: D.AgentDeps) -> dict:
@@ -67,22 +84,22 @@ def _reply(out: dict, dep: D.AgentDeps) -> dict:
 
 
 @router.get("/status")
-async def status(request: Request, _: Principal = Depends(require_permission("identities:read"))):
+async def status(request: Request, _: Principal = Depends(require_permission("self:read"))):
     llm = getattr(request.app.state, "agent_llm", None)
-    return {"mode": request.app.state.settings.agent_mode, "available": getattr(request.app.state, "agent_graph", None) is not None,
+    return {"mode": request.app.state.settings.agent_mode, "self_service": not _.can("identities:read"), "available": getattr(request.app.state, "agent_graph", None) is not None,
             "llm": {"enabled": llm is not None, "models": llm.models if llm else {}}}
 
 
 @router.post("/chat")
-async def chat(body: ChatIn, request: Request, actor: Principal = Depends(require_permission("identities:read"))):
+async def chat(body: ChatIn, request: Request, actor: Principal = Depends(require_permission("self:read"))):
     graph = _graph(request)
-    with D.bound(_deps(request, actor, voice=body.input_mode == "voice")) as dep:
+    with D.bound(await _deps(request, actor, voice=body.input_mode == "voice")) as dep:
         out = await graph.ainvoke({"text": body.query, "voice": body.input_mode == "voice"}, _config(actor, body.session_id))
     return _reply(out, dep)
 
 
 @router.post("/resume")
-async def resume(body: ResumeIn, request: Request, actor: Principal = Depends(require_permission("identities:read"))):
+async def resume(body: ResumeIn, request: Request, actor: Principal = Depends(require_permission("self:read"))):
     graph, cfg = _graph(request), _config(actor, body.session_id)
     snap = await graph.aget_state(cfg)
     waiting = [i for t in snap.tasks for i in t.interrupts]
@@ -90,13 +107,13 @@ async def resume(body: ResumeIn, request: Request, actor: Principal = Depends(re
         raise ApiError(409, "nothing_to_confirm", "There is nothing waiting for confirmation in this chat.")
     if waiting[-1].value.get("call_id") != body.call_id:
         raise ApiError(409, "stale_confirmation", "That confirmation is out of date. Please review the latest plan.")
-    with D.bound(_deps(request, actor)) as dep:
+    with D.bound(await _deps(request, actor)) as dep:
         out = await graph.ainvoke(Command(resume={"confirm": body.confirm, "call_id": body.call_id}), cfg)
     return _reply(out, dep)
 
 
 @router.get("/trace")
-async def trace(session_id: str, request: Request, actor: Principal = Depends(require_permission("identities:read"))):
+async def trace(session_id: str, request: Request, actor: Principal = Depends(require_permission("self:read"))):
     if not memory.SESSION_RE.match(session_id):
         raise ApiError(422, "validation_error", "Invalid session id.")
     snap = await _graph(request).aget_state(_config(actor, session_id))

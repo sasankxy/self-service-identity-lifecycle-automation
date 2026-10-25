@@ -68,7 +68,7 @@ const Auth = (() => {
 
   // ---- page bootstrap for protected pages ----
   const NAV_PERMISSION = {
-    dashboard: 'dashboard:read', 'ai-chat': 'identities:read', users: 'identities:read', approvals: 'approvals:read',
+    dashboard: 'dashboard:read', 'ai-chat': ['identities:read', 'self:request'], users: 'identities:read', approvals: 'approvals:read',
     risk: 'risk:read', audit: 'audit:read', governance: 'governance:read', 'platform-users': 'users:read',
   };
   const ROLE_LABEL = { super_admin: 'Super Administrator', iam_admin: 'IAM Administrator', approver: 'Approver', auditor: 'Auditor', employee: 'Employee' };
@@ -84,7 +84,7 @@ const Auth = (() => {
     document.querySelectorAll('[data-perm]').forEach((el) => { el.hidden = !can(el.dataset.perm); });
     let firstAllowed = null;
     document.querySelectorAll('.nav-item').forEach((btn) => {
-      const allowed = can(NAV_PERMISSION[btn.dataset.page]);
+      const allowed = [].concat(NAV_PERMISSION[btn.dataset.page] || []).some(can);   // any one of the listed permissions
       btn.hidden = !allowed;
       if (allowed && !firstAllowed) firstAllowed = btn.dataset.page;
     });

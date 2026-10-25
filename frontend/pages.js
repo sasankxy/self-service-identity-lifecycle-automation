@@ -442,8 +442,14 @@
     const newSession = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : `s-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
     let chatSession = newSession();     // the server remembers the last question / person per session
     window.agentChatSession = chatSession;
-    let agentMode = false;              // AGENT_MODE=graph on the server: use the multi-agent pipeline (/agent/*)
-    api('/agent/status').then((s) => { agentMode = s.mode === 'graph' && s.available; }).catch(() => {});
+    let agentMode = false;              // AGENT_MODE=graph on the server, or a self-service user: use the multi-agent pipeline (/agent/*)
+    const setupMode = () => {           // needs the user's permissions, so it runs once auth is ready
+      const selfService = !can('identities:read');   // employees: the assistant only covers their own access
+      agentMode = selfService;
+      if (selfService) initSelfService(box);
+      api('/agent/status').then((s) => { agentMode = (s.mode === 'graph' || selfService) && s.available; }).catch(() => {});
+    };
+    if (Auth.me) setupMode(); else document.addEventListener('auth:ready', setupMode, { once: true });
     const bubble = (cls, node) => { const d = document.createElement('div'); d.className = `chat-bubble chat-bubble--${cls}`; d.append(node); box.appendChild(d); box.scrollTop = box.scrollHeight; return d; };
     async function send() {
       const text = input.value.trim(); if (!text) return;
@@ -463,8 +469,28 @@
     input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 100) + 'px'; });
     $('new-chat-btn').addEventListener('click', () => { box.innerHTML = welcomeHtml; chatSession = newSession(); window.agentChatSession = chatSession; });
   }
+  function initSelfService(box) {
+    const prompts = ['What access do I have?', 'Why do I have Microsoft 365 access?', 'I need access to GitHub', 'Remove my Zoom access'];
+    const quick = document.querySelector('#page-ai-chat .suggested-section');
+    if (quick) {
+      quick.innerHTML = '<div class="suggested-label">Try asking</div>';
+      prompts.forEach((p) => { const b = document.createElement('button'); b.className = 'suggestion-chip'; b.innerHTML = `<span>${esc(p)}</span>`;
+        b.onclick = () => injectPrompt(p); quick.appendChild(b); });
+    }
+    const head = document.querySelector('#page-ai-chat .chat-sidebar__header h2'); if (head) head.textContent = 'My Access';
+    const w = box.querySelector('.chat-welcome');
+    if (w) {
+      w.querySelector('.chat-welcome-badge').textContent = 'Self-service · your own access only';
+      w.querySelector('h2').textContent = 'Access Assistant';
+      w.querySelector('p').textContent = 'Ask what access you have and why, request new access or give up access you no longer need. '
+        + 'New access always goes to an approver; nothing changes until you confirm.';
+      welcomeHtml = box.innerHTML;
+    }
+    $('chat-input').placeholder = "e.g. 'What access do I have?' or 'I need access to GitHub'";
+  }
   async function loadSaved() {
     const ul = $('chat-history');
+    if (!can('approvals:read')) { ul.innerHTML = '<li class="pu-state">Your requests go to an approver; you can ask “what access do I have?” any time.</li>'; return; }
     try {
       const d = await api('/approvals?status=all&limit=5');
       const L = { joiner: 'Onboard', mover: 'Mover', leaver: 'Offboard', privilege: 'Privilege' };

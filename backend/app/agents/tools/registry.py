@@ -24,6 +24,7 @@ class ToolSpec:
     prepare: Callable[..., Awaitable[Any]] | None = None             # write tools
     commit: Callable[..., Awaitable[dict]] | None = None
     catalogue: tuple[tuple[str, str], ...] = ()                       # (arg name, catalogue kind) checked against the live directory
+    self_permission: str | None = None    # weaker permission that allows the tool ONLY on the caller's own identity
 
 
 _SPECS = [
@@ -41,7 +42,7 @@ _SPECS = [
     ToolSpec("explain_entitlement_origin", S.ExplainEntitlementOrigin, "read", "identities:read", "Why an identity holds an "
              "entitlement: how it was granted (access profile or request), who requested and approved it, whether it is in the "
              "department baseline.", target_arg="identity_id", run=read.explain_entitlement_origin,
-             catalogue=(("entitlement", "entitlements"), ("application", "applications"))),
+             catalogue=(("entitlement", "entitlements"), ("application", "applications")), self_permission="self:read"),
     ToolSpec("get_request_details", S.GetRequestDetails, "read", "approvals:read", "Everything an approver needs about one lifecycle "
              "request: changes and their risk, baseline fit, the person's risk, the requester's recent history, approval state.",
              run=read.get_request_details),
@@ -53,7 +54,7 @@ _SPECS = [
     ToolSpec("modify_user_access", S.ModifyUserAccess, "write", "identities:write", "Move an identity to another department, or request or "
              "revoke access. Risk-scored by the policy engine.", target_arg="identity_id", prepare=write.prepare_modify,
              commit=write.commit_modify, catalogue=(("to_department", "departments"), ("applications", "applications"),
-                                                    ("entitlements", "entitlements"))),
+                                                    ("entitlements", "entitlements")), self_permission="self:request"),
     ToolSpec("deprovision_user", S.DeprovisionUser, "write", "identities:write", "Offboard an identity: deactivate and revoke all access. "
              "Always requires approval.", target_arg="identity_id", prepare=write.prepare_deprovision, commit=write.commit_deprovision),
 ]

@@ -140,3 +140,7 @@ POST /api/v1/agent/chat -> LangGraph conversation graph (state checkpointed in P
   ("should I approve REQ-123?"), both advisory. Models can only understand, decompose, judge or word things; tool calls are still
   built from quarantined slots and executed only by the Action Gateway. There's a per-turn call budget and a circuit breaker, and
   without a key the system runs fully deterministically.
+* **Employee self-service:** a portal user with the default `employee` role (permission `self:read` + `self:request`) sees only the
+  AI Assistant, which covers *their own* access: "what access do I have?", "why do I have X?", "I need access to GitHub",
+  "remove my Zoom access". The login is linked to the directory identity with the same e-mail, and anything they ask for
+  themselves goes to an approver.

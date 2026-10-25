@@ -36,11 +36,10 @@ class Settings(BaseSettings):
     agent_llm_api_key: SecretStr | None = None
     agent_model_default: str = "openai/gpt-oss-120b"                  # extractor, planner, investigator, copilot
     agent_model_fast: str = "openai/gpt-oss-20b"                      # narrator
-    agent_model_guard: str = "meta-llama/llama-prompt-guard-2-86m"    # sentinel (prompt-injection classifier)
+    agent_model_guard: str = "openai/gpt-oss-20b"                     # sentinel (policy judge for attacks on the assistant)
     agent_models: str = ""                                            # per-role overrides: "planner=qwen/qwen3.8-27b,..."
     agent_llm_timeout_s: float = Field(20.0, ge=1, le=120)
     agent_llm_max_calls: int = Field(6, ge=0, le=20)                  # per chat turn
-    agent_guard_threshold: float = Field(0.9, gt=0, le=1)             # sentinel blocks at or above this injection probability
 
     # --- JWT ---
     jwt_algorithm: str = "HS256"

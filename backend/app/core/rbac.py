@@ -2,6 +2,7 @@
 
 PERMISSIONS: dict[str, str] = {
     "self:read": "Read own profile",
+    "self:request": "Request or give up access for oneself (requests for new access always go to an approver)",
     "dashboard:read": "View dashboard summaries",
     "identities:read": "View managed identities",
     "identities:write": "Create/modify managed identities",
@@ -17,7 +18,7 @@ PERMISSIONS: dict[str, str] = {
     "roles:grant_privileged": "Grant or remove privileged roles",
 }
 
-_READ = ["self:read", "dashboard:read", "identities:read", "approvals:read", "risk:read",
+_READ = ["self:read", "self:request", "dashboard:read", "identities:read", "approvals:read", "risk:read",
          "audit:read", "governance:read"]
 
 ROLES: dict[str, dict] = {
@@ -35,7 +36,7 @@ ROLES: dict[str, dict] = {
     "approver": {
         "display_name": "Approver",
         "description": "Decides approval requests.",
-        "permissions": ["self:read", "dashboard:read", "identities:read", "approvals:read", "approvals:decide"],
+        "permissions": ["self:read", "self:request", "dashboard:read", "identities:read", "approvals:read", "approvals:decide"],
     },
     "auditor": {
         "display_name": "Auditor",
@@ -44,8 +45,8 @@ ROLES: dict[str, dict] = {
     },
     "employee": {
         "display_name": "Employee",
-        "description": "Non-privileged default role.",
-        "permissions": ["self:read"],
+        "description": "Non-privileged default role: self-service access requests through the assistant.",
+        "permissions": ["self:read", "self:request"],
     },
 }
 

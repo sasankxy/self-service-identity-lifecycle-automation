@@ -88,6 +88,17 @@ No model output becomes a tool argument except through quarantine, then the plan
 budget (`AGENT_LLM_MAX_CALLS`), there's a circuit breaker, and every call is listed in `llm_calls` in the `/agent/chat` response.
 With no API key the system runs fully deterministically.
 
+## 3c. Employee self-service (v1.2)
+- **New permission `self:request`:** added to the `employee` and `approver` roles and to the read set. It is additive; no
+  existing permission changed.
+- **Linking:** a portal login is linked to the directory identity with the same e-mail (the most recent one that isn't
+  terminated). The capability token for a self-service turn covers that identity only.
+- **Self-only tools:** `inspect_user_access`, `explain_entitlement_origin` and `modify_user_access`. The last one is limited to
+  `access_request` and `access_revocation` on the caller's own identity; the gateway enforces this through
+  `ToolSpec.self_permission`.
+- **Approval:** any new access a person asks for themselves always goes to an approver (Verifier rule `self_grant`).
+- **Out of scope:** moves, offboarding, other people and directory analytics are refused politely, without a tool call.
+
 ## 4. ToolResult
 `{call_id, tool, ok, decision: auto|approval|deny|clarify|noop|blocked, data, reasons[], error, audit_ref}`
 

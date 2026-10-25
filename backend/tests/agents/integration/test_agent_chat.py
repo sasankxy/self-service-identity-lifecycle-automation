@@ -166,3 +166,33 @@ async def test_llm_extractor_path_with_fake_model(as_role, app):
         assert "LLM agents used" in (r["source"] or "")
     finally:
         app.state.agent_llm = None
+
+
+# ─────────────────────────── employee self-service (portal role "employee": self:read + self:request)
+async def test_employee_self_service_end_to_end(as_role, app):
+    email = await bystander(app, 2, "email")
+    name = await bystander(app, 2, "full_name")
+    c = await as_role("employee", email)                 # portal login with the same e-mail as the directory identity
+    r = await chat(c, "What access do I have?", "sess-self-0001")
+    assert "Current access" in texts(r) and name in texts(r), texts(r)
+    r = await chat(c, "I need access to GitHub", "sess-self-0002")
+    assert r["awaiting_confirmation"] and "approval" in texts(r).lower(), texts(r)   # asking for yourself always needs an approver
+    d = (await c.post(f"{API}/resume", {"session_id": "sess-self-0002", "call_id": r["call_id"], "confirm": True})).json()
+    assert "submitted for approval" in texts(d), texts(d)
+
+
+async def test_employee_cannot_look_at_others_or_analytics(as_role, app):
+    email = await bystander(app, 2, "email")
+    other = await bystander(app, 3, "full_name")
+    c = await as_role("employee", email)
+    r = await chat(c, f"What access does {other} have?", "sess-self-0003")
+    assert "only ask about or change your own access" in texts(r), texts(r)
+    r = await chat(c, "show pending approvals", "sess-self-0004")
+    assert "own access" in texts(r) and "approval(s) pending" not in texts(r)
+    assert (await c.get("/api/v1/approvals")).status_code == 403            # the portal APIs stay closed to employees
+
+
+async def test_unlinked_employee_is_told_so(as_role):
+    c = await as_role("employee", "nobody.in.directory@corp.com")
+    r = await chat(c, "What access do I have?", "sess-self-0005")
+    assert "isn't linked" in texts(r), texts(r)

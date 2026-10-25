@@ -21,6 +21,8 @@ READ_TOOLS = frozenset({"inspect_user_access", "search_identities", "get_identit
                         "peer_access_stats", "list_pending_requests", "explain_entitlement_origin",
                         "get_request_details"})
 WRITE_TOOLS = frozenset({"provision_user", "modify_user_access", "deprovision_user"})
+SELF_READ_TOOLS = frozenset({"inspect_user_access", "explain_entitlement_origin"})
+SELF_WRITE_TOOLS = frozenset({"modify_user_access"})          # access_request / access_revocation only (enforced by the gateway)
 ANY = "*"                     # target wildcard: any identity the actor's permissions allow
 
 
@@ -61,8 +63,11 @@ def tools_for(p: Principal) -> frozenset[str]:
     out: set[str] = set()
     if p.can("identities:read"):
         out |= READ_TOOLS
-    elif p.can("self:read"):
-        out |= {"inspect_user_access"}           # employees may look at their own access only (targets narrowed by caller)
+    else:                                        # self-service: own identity only (the API narrows targets to it)
+        if p.can("self:read"):
+            out |= SELF_READ_TOOLS
+        if p.can("self:request"):
+            out |= SELF_WRITE_TOOLS
     if p.can("identities:write"):
         out |= WRITE_TOOLS
     return frozenset(out)

@@ -26,10 +26,16 @@ class AgentDeps:
     cap: capabilities.Capability
     voice: bool = False
     llm: Any = None                      # app.agents.llm.LLM, or None when LLM agents are disabled
+    self_identity: dict | None = None    # self-service callers (no identities:read): their own directory identity, if linked
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex)
 
 
 _current: contextvars.ContextVar[AgentDeps] = contextvars.ContextVar("agent_deps")
+
+
+def self_mode(dep: AgentDeps) -> bool:
+    """Employees and other users without identities:read may only ask about / change their own access."""
+    return not dep.actor.can("identities:read")
 
 
 def current() -> AgentDeps:

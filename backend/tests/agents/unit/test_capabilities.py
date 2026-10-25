@@ -11,7 +11,7 @@ SECRET = "s" * 48
 def test_ceiling_follows_portal_permissions():
     assert C.tools_for(principal("iam_admin")) == C.READ_TOOLS | C.WRITE_TOOLS
     assert C.tools_for(principal("auditor")) == C.READ_TOOLS
-    assert C.tools_for(principal("employee")) == {"inspect_user_access"}
+    assert C.tools_for(principal("employee")) == C.SELF_READ_TOOLS | C.SELF_WRITE_TOOLS     # self-service, own identity only
     assert not C.tools_for(principal("approver")) & C.WRITE_TOOLS
 
 

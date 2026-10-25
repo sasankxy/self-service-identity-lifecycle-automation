@@ -68,10 +68,12 @@ class ActionGateway:
     async def run(self, ctx: ToolContext, call: ToolCall, *, mode: Literal["preview", "commit"] = "preview",
                   expected_decision: str | None = None) -> ToolResult:
         try:
-            spec, args = self._admit(ctx, call)
+            spec, args, self_only = self._admit(ctx, call)
             if spec.kind == "read":
-                await self._check_target(ctx, spec, args)
+                await self._check_target(ctx, spec, args, self_only)
                 return ToolResult(call_id=call.call_id, tool=spec.name, ok=True, decision=policy.AUTO, data=await spec.run(ctx, args))
+            if self_only:
+                await self._check_self_write(ctx, spec, args)
             prepared = await self._decide(ctx, spec, args)
             if mode == "preview":
                 return ToolResult(call_id=call.call_id, tool=spec.name, ok=True, decision=prepared.decision, data=prepared.summary,
@@ -84,7 +86,7 @@ class ActionGateway:
             return ToolResult(call_id=call.call_id, tool=call.tool, ok=False, error=e.code, reasons=(e.message,))
 
     # ─────────────────────────── checks 1-5
-    def _admit(self, ctx: ToolContext, call: ToolCall) -> tuple[ToolSpec, Any]:
+    def _admit(self, ctx: ToolContext, call: ToolCall) -> tuple[ToolSpec, Any, bool]:
         spec = self.registry.get(call.tool)
         if spec is None:
             raise Blocked("unknown_tool", f"“{call.tool}” is not an allowed tool.")
@@ -103,10 +105,13 @@ class ActionGateway:
         target = getattr(args, spec.target_arg) if spec.target_arg else None
         if target is not None and not cap.allows_target(target):
             raise Blocked("capability_denied", "This conversation is not allowed to act on that identity.")
+        self_only = False
         if not ctx.actor.can(spec.permission):
-            raise Blocked("forbidden", f"Your role does not allow {spec.name}.")
+            if not (spec.self_permission and ctx.actor.can(spec.self_permission)):
+                raise Blocked("forbidden", f"Your role does not allow {spec.name}.")
+            self_only = True              # allowed, but only on the caller's own identity (checked below)
         self._check_catalogue(spec, args)
-        return spec, args
+        return spec, args, self_only
 
     def _check_catalogue(self, spec: ToolSpec, args) -> None:
         cat = self._catalogue() or {}
@@ -119,15 +124,23 @@ class ActionGateway:
                 if item.lower() not in known:
                     raise Blocked("unknown_catalogue_value", f"“{item}” is not a known {kind[:-1]}.")
 
-    async def _check_target(self, ctx: ToolContext, spec: ToolSpec, args) -> None:
+    async def _check_target(self, ctx: ToolContext, spec: ToolSpec, args, self_only: bool = False) -> None:
         """Self-service reads: someone without identities:read may only inspect their own identity."""
-        if not spec.target_arg or ctx.actor.can("identities:read"):
+        if not spec.target_arg or (ctx.actor.can("identities:read") and not self_only):
             if spec.target_arg and not await ctx.db.get(Identity, getattr(args, spec.target_arg)):
                 raise ApiError(404, "not_found", "Identity not found.")
             return
         ident = await ctx.db.get(Identity, getattr(args, spec.target_arg))
         if not ident or not privilege.is_self(ctx.actor.email, ident.email):
             raise Blocked("forbidden", "You can only look at your own access.")
+
+    async def _check_self_write(self, ctx: ToolContext, spec: ToolSpec, args) -> None:
+        """Self-service writes: own identity only, and only asking for or giving up access (no moves, no offboarding)."""
+        ident = await ctx.db.get(Identity, getattr(args, spec.target_arg)) if spec.target_arg else None
+        if not ident or not privilege.is_self(ctx.actor.email, ident.email):
+            raise Blocked("forbidden", "You can only request or give up access for yourself.")
+        if getattr(args, "change", None) not in ("access_request", "access_revocation"):
+            raise Blocked("forbidden", "Department moves and offboarding have to be requested by your manager or the IAM team.")
 
     # ─────────────────────────── checks 6-7
     async def _decide(self, ctx: ToolContext, spec: ToolSpec, args):
