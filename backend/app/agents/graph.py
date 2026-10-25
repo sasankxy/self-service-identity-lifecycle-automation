@@ -29,6 +29,7 @@ from app.agents.contract import ToolCall
 from app.agents.gateway import ActionGateway, ToolContext
 from app.agents.security import injection
 from app.agents.security.sanitize import sanitize
+from app.agents.tools.registry import REGISTRY
 from app.models import Identity
 from app.services import audit, directory, memory, nlu, policy, scope
 from app.services.cache import invalidate
@@ -212,10 +213,15 @@ async def lifecycle(state: ChatState) -> dict:
         who: Identity = matches[0]
         ctx["person"] = {"employee_id": who.employee_id, "name": who.full_name}
 
+        who_name = who.full_name
+        card = await directory.identity_card(db, who)          # before the gateway: a blocked call rolls back and expires ORM objects
         call = plan_call(label, s, who.id, text_in)
+        if REGISTRY[call.tool].kind == "write" and not dep.actor.can("identities:write"):
+            # a read-only role asking for a change is not an attack: explain, don't send it to the gateway (which would block + audit)
+            return out(blocks + card + [narrator.text("Your role can review this but not submit it. Ask an IAM administrator to make the change.")],
+                       tool=call.tool, outcome="read_only_role")
         cap = dep.cap.narrowed(targets={str(who.id)})          # this turn may only touch the person it resolved
         result = (await ActionGateway().run(_gateway_ctx(db, dep, text_in, cap), call)).model_dump(mode="json")
-        card = await directory.identity_card(db, who)
 
     if not result["ok"]:
         return out(blocks + card + narrator.error_blocks(result), tool=call.tool, error=result["error"], outcome="error")
@@ -227,7 +233,7 @@ async def lifecycle(state: ChatState) -> dict:
     data = result["data"]
     src = s.get("source_department")
     if label == "MOVER" and src and data.get("from_department") and src.lower() != data["from_department"].lower():
-        blocks.append(narrator.text(f"Heads-up: the directory has {who.full_name} in {data['from_department']}, not {src}."))
+        blocks.append(narrator.text(f"Heads-up: the directory has {who_name} in {data['from_department']}, not {src}."))
     blocks += card + narrator.preview_blocks(result)
     if data.get("choices"):
         c = data["choices"][0]
