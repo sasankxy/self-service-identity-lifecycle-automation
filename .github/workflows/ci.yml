@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, "feat/**", "integration/**", "hotfix/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast, no services: contract snapshot, gateway checks, security detectors. A contract break fails here first.
+  agent-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Agent unit + contract tests
+        env:
+          JWT_SECRET_KEY: ci-only-jwt-secret-not-used-anywhere-else-000
+          CSRF_SECRET: ci-only-csrf-secret-not-used-anywhere-else-000
+        run: pytest tests/agents/unit -q
+
+  # Full suite against real PostgreSQL + Redis (tests/conftest.py migrates and seeds identityos_test).
+  integration:
+    runs-on: ubuntu-latest
+    needs: agent-unit
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: identityos
+          POSTGRES_PASSWORD: identityos
+          POSTGRES_DB: identityos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U identityos -d identityos_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://identityos:identityos@localhost:5432/identityos_test
+      TEST_REDIS_URL: redis://localhost:6379/15
+      JWT_SECRET_KEY: ci-only-jwt-secret-not-used-anywhere-else-000
+      CSRF_SECRET: ci-only-csrf-secret-not-used-anywhere-else-000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Full test suite
+        run: pytest -q -ra

@@ -1,4 +1,3 @@
-import secrets
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
@@ -6,7 +5,6 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import func, or_, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.common import request_deltas
@@ -17,7 +15,7 @@ from app.models import (
     AccessProfile, AccessProfileEntitlement, ApprovalRequest, Department, Entitlement, Identity, IdentityEntitlement,
     LifecycleRequest, LifecycleRequestEntitlement, RiskAssessment,
 )
-from app.services import audit, lifecycle, policy, stats
+from app.services import audit, lifecycle, onboarding, policy, stats
 from app.services.accounts import Principal
 from app.services.cache import cached, invalidate
 
@@ -156,9 +154,6 @@ class IdentityIn(BaseModel):
         return v
 
 
-_RISK_POINTS = {"low": 2, "medium": 8, "high": 18, "critical": 40}
-
-
 @router.post("", status_code=201)
 async def create_identity(body: IdentityIn, request: Request, db: AsyncSession = Depends(get_db),
                           actor: Principal = Depends(require_permission("identities:write"))):
@@ -171,33 +166,11 @@ async def create_identity(body: IdentityIn, request: Request, db: AsyncSession =
         raise ApiError(422, "validation_error", "Unknown department.", fields={"department_id": "Unknown department"})
     if not prof:
         raise ApiError(422, "validation_error", "Unknown access profile.", fields={"access_profile_id": "Unknown access profile"})
-    ents = (await db.execute(select(Entitlement).join(AccessProfileEntitlement, AccessProfileEntitlement.entitlement_id == Entitlement.id)
-                             .where(AccessProfileEntitlement.access_profile_id == prof.id))).scalars().all()
-    score = min(100, 5 + sum(_RISK_POINTS[e.risk_level] for e in ents))
-    ident = Identity(employee_id=f"EMP-{secrets.token_hex(3).upper()}", full_name=f"{body.first_name} {body.last_name}", email=body.email,
-                     department_id=dept.id, access_profile_id=prof.id, job_title=prof.name, lifecycle_state="joiner", risk_score=score,
-                     start_date=body.start_date, is_demo=False)
-    db.add(ident)
-    try:
-        await db.flush()
-    except IntegrityError:
-        await db.rollback()
-        raise ApiError(409, "email_exists", "An identity with this email already exists.", fields={"email": "Already exists"})
-    assess = RiskAssessment(identity_id=ident.id, score=score, level=stats.risk_level(score), triggers=[])
-    lreq = LifecycleRequest(identity_id=ident.id, request_type="joiner", status="pending_approval", to_department_id=dept.id,
-                            requested_by=uuid.UUID(actor.id), requester_name=actor.full_name, effective_date=body.start_date)
-    db.add_all([assess, lreq])
-    await db.flush()
-    for e in ents:
-        db.add(LifecycleRequestEntitlement(request_id=lreq.id, entitlement_id=e.id, action="add"))
-    assess.lifecycle_request_id = lreq.id
-    db.add(ApprovalRequest(lifecycle_request_id=lreq.id, risk_assessment_id=assess.id, status="pending",
-                           priority="urgent" if score >= 75 else "normal"))
-    audit.record(db, request, "identity.create", actor_id=actor.id, actor_label=actor.email, target_type="identity", target_id=ident.id,
-                 target_label=ident.email, details={"request": f"REQ-{lreq.ref_no}", "department": dept.name, "access_profile": prof.name})
+    out = await onboarding.create_joiner(db, request, actor, first_name=body.first_name, last_name=body.last_name, email=body.email,
+                                         dept=dept, prof=prof, start_date=body.start_date)
     await db.commit()
     await invalidate(request)
-    return {"id": ident.id, "name": ident.full_name, "request_ref": f"REQ-{lreq.ref_no}", "status": "pending_approval", "risk_score": score}
+    return out
 
 
 class DeprovisionIn(BaseModel):

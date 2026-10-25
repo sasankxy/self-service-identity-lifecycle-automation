@@ -29,7 +29,7 @@ from app.models import (AccessProfile, ApprovalRequest, Department, Entitlement,
                         LifecycleRequestEntitlement)
 from copy import deepcopy
 
-from app.services import lifecycle, memory, namematch, nlu, policy, scope, slm, stats
+from app.services import directory, lifecycle, memory, namematch, nlu, policy, scope, slm, stats
 from app.services.cache import invalidate
 from app.services.accounts import Principal
 
@@ -46,23 +46,8 @@ class QueryIn(BaseModel):
     input_mode: Literal["text", "voice"] = "text"            # "voice": the text came from speech recognition, so names may be misheard
 
 
-def _kv(items): return {"type": "kv", "items": [[k, "—" if v is None else str(v)] for k, v in items]}
-def _text(t): return {"type": "text", "text": t}
-def _list(items): return {"type": "list", "items": items}
-def _head(t): return {"type": "heading", "text": t}
-
-
-async def _identity_card(db: AsyncSession, i: Identity) -> list[dict]:
-    dept = await db.get(Department, i.department_id) if i.department_id else None
-    prof = await db.get(AccessProfile, i.access_profile_id) if i.access_profile_id else None
-    n_active = (await db.execute(select(func.count()).select_from(IdentityEntitlement).where(
-        IdentityEntitlement.identity_id == i.id, IdentityEntitlement.status.in_(("active", "pending"))))).scalar_one()
-    reqs = (await db.execute(select(LifecycleRequest.ref_no, LifecycleRequest.request_type, LifecycleRequest.status).where(
-        LifecycleRequest.identity_id == i.id).order_by(LifecycleRequest.created_at.desc()).limit(3))).all()
-    return [_head(i.full_name), _kv([
-        ("Email", i.email), ("Department", dept.name if dept else None), ("Access profile", prof.name if prof else None),
-        ("Lifecycle state", i.lifecycle_state), ("Risk score", f"{i.risk_score} / 100 ({stats.risk_level(i.risk_score)})"),
-        ("Current entitlements", n_active), ("Recent requests", ", ".join(f"REQ-{n} {t} ({s})" for n, t, s in reqs) or "none")])]
+_kv, _text, _list, _head = directory.kv, directory.text, directory.bullets, directory.head
+_identity_card = directory.identity_card
 
 
 async def _legacy(db: AsyncSession, actor: Principal, query: str) -> tuple[list[dict], bool]:
@@ -142,37 +127,7 @@ def _understood(res: dict, actor: Principal) -> dict:
     return _kv([(k, v) for k, v in rows if v])
 
 
-async def _resolve_identities(db: AsyncSession, actor: Principal, s: dict) -> list[Identity]:
-    if s.get("employee_id"):
-        cond = func.lower(Identity.employee_id) == s["employee_id"].lower()
-    elif s.get("person"):
-        parts = [p for p in re.findall(r"[a-z0-9.'-]+", s["person"].lower()) if len(p) >= 2]
-        if not parts:
-            return []
-        cond = func.coalesce(func.lower(Identity.full_name), "").like(f"%{parts[0]}%")
-        for p in parts:   # every name part must appear in the name or e-mail
-            cond = cond & or_(func.lower(Identity.full_name).like(f"%{p}%"), func.lower(Identity.email).like(f"%{p}%"))
-    elif s.get("subject_reference") == "SELF":
-        cond = func.lower(Identity.email) == actor.email.lower()
-    else:
-        return []
-    return list((await db.execute(select(Identity).where(cond).order_by(Identity.full_name).limit(25))).scalars().all())
-
-
-async def _entitlements(db: AsyncSession, identity_id, apps: list[str] | None = None, roles: list[str] | None = None) -> list[str]:
-    q = (select(Entitlement.application, Entitlement.name, Entitlement.risk_level, IdentityEntitlement.status)
-         .join(IdentityEntitlement, IdentityEntitlement.entitlement_id == Entitlement.id)
-         .where(IdentityEntitlement.identity_id == identity_id, IdentityEntitlement.status.in_(("active", "pending"))))
-    if apps or roles:
-        q = q.where(or_(func.lower(Entitlement.application).in_([a.lower() for a in apps or []]),
-                        func.lower(Entitlement.name).in_([r.lower() for r in roles or []])))
-    rows = (await db.execute(q.order_by(Entitlement.application, Entitlement.name))).all()
-    lines = [f"{n} ({a}) · {r} risk" + (" · pending" if st == "pending" else "") for a, n, r, st in rows]
-    return lines if len(lines) <= 12 else lines[:12] + [f"…and {len(lines) - 12} more"]
-
-
-async def _dept_by_name(db: AsyncSession, name: str | None) -> Department | None:
-    return (await db.execute(select(Department).where(func.lower(Department.name) == name.lower()))).scalar_one_or_none() if name else None
+_resolve_identities, _entitlements, _dept_by_name = directory.resolve_identities, directory.entitlement_lines, directory.dept_by_name
 
 
 # ---- proposal: what the browser sends back on "Confirm". The SERVER rebuilds the plan from it; the decision is never trusted.

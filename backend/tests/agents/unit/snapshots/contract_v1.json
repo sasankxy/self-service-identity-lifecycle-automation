@@ -1,0 +1,737 @@
+{
+  "models": {
+    "ActionPlan": {
+      "$defs": {
+        "ToolCall": {
+          "additionalProperties": false,
+          "description": "A proposed call. `args` is validated against the tool's own schema by the gateway, never trusted as-is.",
+          "properties": {
+            "args": {
+              "additionalProperties": true,
+              "title": "Args",
+              "type": "object"
+            },
+            "call_id": {
+              "maxLength": 64,
+              "title": "Call Id",
+              "type": "string"
+            },
+            "plan_id": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plan Id"
+            },
+            "proposed_by": {
+              "default": "planner",
+              "maxLength": 40,
+              "title": "Proposed By",
+              "type": "string"
+            },
+            "tool": {
+              "maxLength": 64,
+              "title": "Tool",
+              "type": "string"
+            }
+          },
+          "required": [
+            "tool"
+          ],
+          "title": "ToolCall",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "rationale": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Rationale",
+          "type": "array"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/ToolCall"
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps"
+      ],
+      "title": "ActionPlan",
+      "type": "object"
+    },
+    "IntentV1": {
+      "additionalProperties": false,
+      "description": "What the Extractor understood. Produced from UNTRUSTED text, so every value is re-validated downstream.",
+      "properties": {
+        "action": {
+          "enum": [
+            "onboard",
+            "modify_access",
+            "deprovision",
+            "inspect"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "applications": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Applications",
+          "type": "array"
+        },
+        "change": {
+          "anyOf": [
+            {
+              "enum": [
+                "mover",
+                "access_request",
+                "access_revocation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change"
+        },
+        "confidence": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "department": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Department"
+        },
+        "effective_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective Date"
+        },
+        "effective_date_text": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective Date Text"
+        },
+        "entitlements": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Entitlements",
+          "type": "array"
+        },
+        "missing_slots": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Slots",
+          "type": "array"
+        },
+        "requester_id": {
+          "title": "Requester Id",
+          "type": "string"
+        },
+        "self_reference": {
+          "default": false,
+          "title": "Self Reference",
+          "type": "boolean"
+        },
+        "source": {
+          "default": "nlu",
+          "enum": [
+            "nlu",
+            "slm",
+            "memory",
+            "governance"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "source_department": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Department"
+        },
+        "target_role": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Role"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User Id"
+        }
+      },
+      "required": [
+        "action",
+        "requester_id"
+      ],
+      "title": "IntentV1",
+      "type": "object"
+    },
+    "ToolCall": {
+      "additionalProperties": false,
+      "description": "A proposed call. `args` is validated against the tool's own schema by the gateway, never trusted as-is.",
+      "properties": {
+        "args": {
+          "additionalProperties": true,
+          "title": "Args",
+          "type": "object"
+        },
+        "call_id": {
+          "maxLength": 64,
+          "title": "Call Id",
+          "type": "string"
+        },
+        "plan_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plan Id"
+        },
+        "proposed_by": {
+          "default": "planner",
+          "maxLength": 40,
+          "title": "Proposed By",
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 64,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool"
+      ],
+      "title": "ToolCall",
+      "type": "object"
+    },
+    "ToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "audit_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Audit Ref"
+        },
+        "call_id": {
+          "title": "Call Id",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": true,
+          "title": "Data",
+          "type": "object"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "approval",
+                "deny",
+                "clarify",
+                "noop",
+                "blocked"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "tool": {
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "call_id",
+        "tool",
+        "ok"
+      ],
+      "title": "ToolResult",
+      "type": "object"
+    }
+  },
+  "tools": {
+    "deprovision_user": {
+      "description": "Offboard an identity: deactivate and revoke all access. Always requires approval.",
+      "kind": "write",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "effective_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Effective Date"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id",
+          "reason"
+        ],
+        "title": "DeprovisionUser",
+        "type": "object"
+      }
+    },
+    "get_department_baseline": {
+      "description": "The access profiles of a department and the entitlements each one grants.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "department": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Department",
+            "type": "string"
+          }
+        },
+        "required": [
+          "department"
+        ],
+        "title": "GetDepartmentBaseline",
+        "type": "object"
+      }
+    },
+    "get_identity_profile": {
+      "description": "Department, access profile, manager, lifecycle state and risk of one identity.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id"
+        ],
+        "title": "GetIdentityProfile",
+        "type": "object"
+      }
+    },
+    "inspect_user_access": {
+      "description": "Current active and pending access of one identity, optionally filtered to applications or entitlement names.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "applications": {
+            "items": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Applications",
+            "type": "array"
+          },
+          "entitlements": {
+            "items": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Entitlements",
+            "type": "array"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id"
+        ],
+        "title": "InspectUserAccess",
+        "type": "object"
+      }
+    },
+    "list_pending_requests": {
+      "description": "Lifecycle requests waiting for approval.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "default": 10,
+            "maximum": 20,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "ListPendingRequests",
+        "type": "object"
+      }
+    },
+    "modify_user_access": {
+      "description": "Move an identity to another department, or request or revoke access. Risk-scored by the policy engine.",
+      "kind": "write",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "access_profile": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Access Profile"
+          },
+          "applications": {
+            "items": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Applications",
+            "type": "array"
+          },
+          "change": {
+            "enum": [
+              "mover",
+              "access_request",
+              "access_revocation"
+            ],
+            "title": "Change",
+            "type": "string"
+          },
+          "date_text": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Date Text"
+          },
+          "effective_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Effective Date"
+          },
+          "entitlements": {
+            "items": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Entitlements",
+            "type": "array"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "justification": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Justification",
+            "type": "string"
+          },
+          "to_department": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "To Department"
+          }
+        },
+        "required": [
+          "identity_id",
+          "change"
+        ],
+        "title": "ModifyUserAccess",
+        "type": "object"
+      }
+    },
+    "peer_access_stats": {
+      "description": "Entitlements commonly held by people in a department (least-privilege recommendation input).",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "department": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Department",
+            "type": "string"
+          },
+          "min_share": {
+            "default": 0.5,
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Min Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "department"
+        ],
+        "title": "PeerAccessStats",
+        "type": "object"
+      }
+    },
+    "provision_user": {
+      "description": "Onboard a new joiner with a department access profile. Always routed to an approver.",
+      "kind": "write",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "access_profile": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Access Profile",
+            "type": "string"
+          },
+          "department": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Department",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z .'-]*$",
+            "title": "First Name",
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z .'-]*$",
+            "title": "Last Name",
+            "type": "string"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start Date"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "department",
+          "access_profile"
+        ],
+        "title": "ProvisionUser",
+        "type": "object"
+      }
+    },
+    "search_identities": {
+      "description": "Find identities by name, e-mail or employee id.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "default": 5,
+            "maximum": 10,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchIdentities",
+        "type": "object"
+      }
+    }
+  },
+  "version": "1.0.0"
+}
