@@ -41,7 +41,7 @@ from app.models import Identity
 from app.services import audit, directory, memory, nlu, policy, scope
 from app.services.cache import invalidate
 
-WHY_RE = re.compile(r"^\s*why\s+(?:does|do|did|is|has)\s+(?P<who>.+?)\s+(?:still\s+)?(?:have|has|hold|holds|got|get)\s+"
+WHY_RE = re.compile(r"^\s*why\s+(?:(?:does|do|did|is|has)\s+)?(?P<who>.+?)\s+(?:still\s+)?(?:have|has|hold|holds|got|get)\s+"
                     r"(?:access\s+to\s+|the\s+)?(?P<what>.+?)(?:\s+(?:access|rights|permissions?|role|entitlement))?\s*\??\s*$", re.IGNORECASE)
 PRONOUN_RE = re.compile(r"\b(he|him|his|she|her|hers|they|them|their)\b", re.IGNORECASE)
 SOURCE = {"blocked": "Blocked by the agent's input guard (no model was used).",

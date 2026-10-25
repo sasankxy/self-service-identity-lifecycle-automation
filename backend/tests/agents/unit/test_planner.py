@@ -114,6 +114,8 @@ def test_too_many_steps_denied():
     ("Why does Kai Chen have AWS AdministratorAccess (Prod-US-East)?", "Kai Chen", "AWS AdministratorAccess (Prod-US-East)"),
     ("why does kai chen still have access to Salesforce", "kai chen", "Salesforce"),
     ("Why does EMP-1A2B3C have the GitHub Enterprise entitlement?", "EMP-1A2B3C", "GitHub Enterprise"),
+    ("Why Rohan Green have Salesforce CRM access?", "Rohan Green", "Salesforce CRM"),        # informal grammar
+    ("why kai chen has AWS", "kai chen", "AWS"),
 ])
 def test_why_pattern(text, who, what):
     m = graph.WHY_RE.match(text)
