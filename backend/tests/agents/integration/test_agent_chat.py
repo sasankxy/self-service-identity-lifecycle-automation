@@ -115,3 +115,26 @@ async def test_follow_up_answer_fills_missing_department(as_role, app):
     r2 = await chat(c, QUIET_TARGET, sid)
     assert r2["awaiting_confirmation"], texts(r2)
     await c.post(f"{API}/resume", {"session_id": sid, "call_id": r2["call_id"], "confirm": False})
+
+
+async def test_compound_request_is_one_plan_with_one_confirmation(as_role, app):
+    name = await bystander(app, 2, "full_name")
+    c = await as_role("iam_admin")
+    sid = "sess-agent-multi01"
+    r = await chat(c, f"Move {name} to {QUIET_TARGET} and remove their Slack access", sid)
+    assert "multi" in [t["node"] for t in r["trace"]], texts(r)
+    assert "Plan: 2 changes" in texts(r) and r["awaiting_confirmation"], texts(r)
+    assert sum(1 for b in r["blocks"] if b["type"] == "action" and b["action"] == "agent-confirm") == 1
+    d = (await c.post(f"{API}/resume", {"session_id": sid, "call_id": r["call_id"], "confirm": True})).json()
+    kept = 1 + ("dropped from the plan" not in texts(r))       # the Slack step is dropped if the person holds no Slack
+    assert texts(d).count("REQ-") == kept, texts(d)            # one request per step, each through the gateway
+    assert await scalar(app, "select count(*) from audit_logs where action='agent.tool_executed' and details->>'trace_id' = :t",
+                        t=d["trace_id"]) == kept
+
+
+async def test_why_question_explains_provenance(as_role, app):
+    name = await bystander(app, 2, "full_name")
+    c = await as_role("auditor")
+    r = await chat(c, f"Why does {name} have Microsoft 365 access?")
+    assert [t["node"] for t in r["trace"]] == ["sentinel", "understand", "investigate"]
+    assert f"Why {name} has this access" in texts(r) and "access profile" in texts(r), texts(r)

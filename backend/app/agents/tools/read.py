@@ -72,3 +72,41 @@ async def list_pending_requests(ctx, a: S.ListPendingRequests) -> dict:
         .join(Identity, Identity.id == LifecycleRequest.identity_id).where(ApprovalRequest.status == "pending")
         .order_by(ApprovalRequest.requested_at.desc()).limit(a.limit))).all()
     return {"pending": [{"ref": f"REQ-{n}", "type": t, "identity": name, "priority": p} for n, t, name, p, _ in rows]}
+
+
+async def explain_entitlement_origin(ctx, a: S.ExplainEntitlementOrigin) -> dict:
+    """Provenance of held access: profile grant vs. request (who asked, who approved, why), and whether it is baseline for the
+    person's department. Read-only; this is the evidence the Investigator agent and the user see."""
+    from app.models import User
+    ident = await ctx.db.get(Identity, a.identity_id)
+    q = (select(Entitlement, IdentityEntitlement).join(IdentityEntitlement, IdentityEntitlement.entitlement_id == Entitlement.id)
+         .where(IdentityEntitlement.identity_id == ident.id, IdentityEntitlement.status.in_(("active", "pending"))))
+    if a.entitlement:
+        q = q.where(func.lower(Entitlement.name) == a.entitlement.lower())
+    elif a.application:
+        q = q.where(func.lower(Entitlement.application) == a.application.lower())
+    rows = (await ctx.db.execute(q.order_by(Entitlement.application, Entitlement.name).limit(10))).all()
+    baseline = set((await ctx.db.execute(
+        select(AccessProfileEntitlement.entitlement_id).join(AccessProfile, AccessProfile.id == AccessProfileEntitlement.access_profile_id)
+        .where(AccessProfile.department_id == ident.department_id))).scalars()) if ident.department_id else set()
+    dept = await ctx.db.get(Department, ident.department_id) if ident.department_id else None
+    out = []
+    for e, ie in rows:
+        item = {"entitlement": e.name, "application": e.application, "risk_level": e.risk_level, "status": ie.status,
+                "granted_at": ie.granted_at.date().isoformat() if ie.granted_at else None,
+                "expires_at": ie.expires_at.isoformat() if ie.expires_at else None, "in_department_baseline": e.id in baseline,
+                "origin": "access_profile" if ie.source == "profile" else "request" if ie.source.startswith("request:") else ie.source}
+        if ie.granted_by:
+            u = await ctx.db.get(User, ie.granted_by)
+            item["granted_by"] = u.email if u else None
+        if ie.source.startswith("request:") and ie.source.split(":", 1)[1].isdigit():
+            req = (await ctx.db.execute(select(LifecycleRequest).where(LifecycleRequest.ref_no == int(ie.source.split(":", 1)[1])))).scalar_one_or_none()
+            if req:
+                ap = (await ctx.db.execute(select(ApprovalRequest).where(ApprovalRequest.lifecycle_request_id == req.id))).scalars().first()
+                approver = await ctx.db.get(User, ap.decided_by) if ap and ap.decided_by else None
+                item["request"] = {"ref": f"REQ-{req.ref_no}", "type": req.request_type, "requested_by": req.requester_name,
+                                   "justification": (req.justification or "")[:200], "status": req.status,
+                                   "approved_by": approver.email if approver else ("policy engine" if ap and ap.status == "approved" else None),
+                                   "decision_comment": (ap.decision_comment or "")[:200] if ap else None}
+        out.append(item)
+    return {"identity": {"id": str(ident.id), "name": ident.full_name}, "department": dept.name if dept else None, "entitlements": out}

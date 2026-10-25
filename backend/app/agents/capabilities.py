@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from app.services.accounts import Principal
 
 READ_TOOLS = frozenset({"inspect_user_access", "search_identities", "get_identity_profile", "get_department_baseline",
-                        "peer_access_stats", "list_pending_requests"})
+                        "peer_access_stats", "list_pending_requests", "explain_entitlement_origin"})
 WRITE_TOOLS = frozenset({"provision_user", "modify_user_access", "deprovision_user"})
 ANY = "*"                     # target wildcard: any identity the actor's permissions allow
 

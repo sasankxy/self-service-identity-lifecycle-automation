@@ -38,6 +38,10 @@ _SPECS = [
              "entitlements each one grants.", run=read.get_department_baseline, catalogue=(("department", "departments"),)),
     ToolSpec("peer_access_stats", S.PeerAccessStats, "read", "identities:read", "Entitlements commonly held by people in a department "
              "(least-privilege recommendation input).", run=read.peer_access_stats, catalogue=(("department", "departments"),)),
+    ToolSpec("explain_entitlement_origin", S.ExplainEntitlementOrigin, "read", "identities:read", "Why an identity holds an "
+             "entitlement: how it was granted (access profile or request), who requested and approved it, whether it is in the "
+             "department baseline.", target_arg="identity_id", run=read.explain_entitlement_origin,
+             catalogue=(("entitlement", "entitlements"), ("application", "applications"))),
     ToolSpec("list_pending_requests", S.ListPendingRequests, "read", "approvals:read", "Lifecycle requests waiting for approval.",
              run=read.list_pending_requests),
     ToolSpec("provision_user", S.ProvisionUser, "write", "identities:write", "Onboard a new joiner with a department access profile. "

@@ -80,3 +80,30 @@ def done_blocks(result: dict) -> list[dict]:
         return [head(msg), text(note)]
     return [head(f"{ref} submitted for approval."), text("It is now in the approvals queue."),
             {"type": "action", "label": "Open approvals queue", "action": "nav:approvals"}]
+
+
+ORIGIN = {"access_profile": "granted with the access profile", "request": "granted through a lifecycle request"}
+
+
+def origin_blocks(d: dict) -> list[dict]:
+    """Evidence for 'why does X have Y?'. Stored request text is shown as quoted data, never interpreted."""
+    ents = d.get("entitlements") or []
+    who = d["identity"]["name"]
+    if not ents:
+        return [text(f"{who} doesn't currently hold that access.")]
+    blocks = [head(f"Why {who} has this access")]
+    for e in ents:
+        rows = [("Entitlement", f"{e['entitlement']} ({e['application']}) · {e['risk_level']} risk"),
+                ("How", ORIGIN.get(e["origin"], f"granted via {e['origin']}") + (f" on {e['granted_at']}" if e.get("granted_at") else "")),
+                (f"In {d.get('department') or 'department'} baseline", "yes" if e["in_department_baseline"] else "no — outside the baseline")]
+        req = e.get("request")
+        if req:
+            rows += [("Request", f"{req['ref']} ({req['type']}, {req['status']})"), ("Requested by", req.get("requested_by")),
+                     ("Approved by", req.get("approved_by")), ("Justification", f"“{req['justification']}”" if req.get("justification") else None)]
+        if e.get("expires_at"):
+            rows.append(("Expires", e["expires_at"]))
+        blocks.append(kv([(k, v) for k, v in rows if v]))
+    risky = [e for e in ents if not e["in_department_baseline"] and e["risk_level"] in ("high", "critical")]
+    if risky:
+        blocks.append(text("High-risk access outside the department baseline is a privilege-creep signal; consider an access review."))
+    return blocks

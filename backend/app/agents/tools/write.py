@@ -33,8 +33,9 @@ def plan_summary(plan: policy.Plan) -> dict:
     return {"kind": plan.kind, "identity": {"id": str(plan.identity.id), "name": plan.identity.full_name, "email": plan.identity.email},
             "from_department": plan.from_dept.name if plan.from_dept else None,
             "to_department": plan.to_dept.name if plan.to_dept else None, "access_profile": plan.profile.name if plan.profile else None,
-            "add": [{"name": l.name, "application": l.application, "risk_level": l.risk_level, "decision": l.decision} for l in plan.adds],
-            "remove": [l.name for l in plan.removes], "keeps": plan.keeps, "notes": plan.notes, "questions": plan.questions,
+            "add": [{"id": str(l.entitlement_id), "name": l.name, "application": l.application, "risk_level": l.risk_level,
+                     "decision": l.decision} for l in plan.adds],
+            "remove": [l.name for l in plan.removes], "remove_ids": [str(l.entitlement_id) for l in plan.removes], "keeps": plan.keeps, "notes": plan.notes, "questions": plan.questions,
             "profile_options": [p.name for p in plan.profile_options], "choices": plan.choices,
             "effective_date": plan.effective_date.isoformat() if plan.effective_date else None}
 

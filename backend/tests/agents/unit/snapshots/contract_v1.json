@@ -411,6 +411,53 @@
         "type": "object"
       }
     },
+    "explain_entitlement_origin": {
+      "description": "Why an identity holds an entitlement: how it was granted (access profile or request), who requested and approved it, whether it is in the department baseline.",
+      "kind": "read",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "application": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Application"
+          },
+          "entitlement": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Entitlement"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id"
+        ],
+        "title": "ExplainEntitlementOrigin",
+        "type": "object"
+      }
+    },
     "get_department_baseline": {
       "description": "The access profiles of a department and the entitlements each one grants.",
       "kind": "read",
@@ -733,5 +780,5 @@
       }
     }
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

@@ -44,6 +44,12 @@ class PeerAccessStats(Args):
     min_share: float = Field(0.5, gt=0.0, le=1.0)      # entitlements held by at least this share of the department
 
 
+class ExplainEntitlementOrigin(Args):
+    identity_id: uuid.UUID
+    entitlement: Name | None = None              # exact entitlement name ("AWS AdministratorAccess (Prod-US-East)")
+    application: Name | None = None              # or every held entitlement of one application ("AWS")
+
+
 class ListPendingRequests(Args):
     limit: int = Field(10, ge=1, le=20)
 

@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
 
 Action = Literal["onboard", "modify_access", "deprovision", "inspect"]
 Change = Literal["mover", "access_request", "access_revocation"]

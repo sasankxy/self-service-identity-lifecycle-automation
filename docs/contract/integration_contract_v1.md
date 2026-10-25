@@ -1,4 +1,4 @@
-# Integration Contract v1.0.0 — Agent layer ↔ IAM backend
+# Integration Contract v1.1.0 — Agent layer ↔ IAM backend
 
 **Owners:** Person A (agent layer, `backend/app/agents`) and Person B (IAM backend, policy, governance).
 **Source of truth:** `backend/app/agents/contract.py` and `backend/app/agents/tools/schemas.py`. The JSON-schema snapshot
@@ -41,7 +41,8 @@ The plan's §5.3 tools map as follows:
 | `modify_user_access` | write | `identities:write` | `policy.build_plan` → `lifecycle.execute_plan` | policy engine |
 | `deprovision_user` | write | `identities:write` | `policy.build_plan(kind="leaver")` → `execute_plan` | **always approval** |
 
-Additional read tools: `search_identities`, `get_identity_profile`, `get_department_baseline`, `peer_access_stats`, `list_pending_requests`.
+Additional read tools: `search_identities`, `get_identity_profile`, `get_department_baseline`, `peer_access_stats`, `list_pending_requests`,
+`explain_entitlement_origin` (*v1.1*: why an identity holds access: profile vs request, requester, approver, baseline membership).
 The argument schemas are in `tools/schemas.py`, and `registry.json_schemas()` exports them for LLM prompts and the MCP server.
 
 ## 3. Execution guarantees (Action Gateway, `app/agents/gateway.py`)
@@ -60,6 +61,18 @@ Every call runs these checks in order. The first one to fail stops the call and 
 | 9 | One transaction through the existing services, plus an `agent.tool_executed` audit row (`trace_id`, `call_id`, `plan_id`) | — |
 
 A commit requires the decision the person saw (`expected_decision`) to still hold. If the policy outcome has changed, the commit fails with `policy_changed`.
+
+## 3a. Plans and the quarantine boundary (v1.1)
+- **Quarantine:** the planner receives only a typed `Slots` object (`app/agents/security/quarantine.py`). The fields are an enum
+  label, name and employee-ID patterns, catalogue-canonical department/application/entitlement values, dates, and bounded
+  reason/date text that is stored as data. The planner function has no text parameter, and a test enforces that.
+- **ActionPlan:** a compound request ("move X to Legal and remove their Slack access") becomes up to 3 `ToolCall`s that share
+  a `plan_id`. Each step is previewed through the gateway.
+- **Cross-step checks:** the steps are verified together for SoD conflicts created by the combination, and for offboarding plus
+  another change for the same person. Steps that change nothing, or that an earlier step already covers, are dropped. The user
+  confirms the plan once.
+- **Commit:** `POST /agent/resume` quotes the `plan_id` as `call_id`. Steps commit in order, and the policy is re-checked for
+  each one. The first failure stops the rest.
 
 ## 4. ToolResult
 `{call_id, tool, ok, decision: auto|approval|deny|clarify|noop|blocked, data, reasons[], error, audit_ref}`
