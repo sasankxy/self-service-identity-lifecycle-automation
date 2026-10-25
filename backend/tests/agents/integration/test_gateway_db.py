@@ -28,9 +28,14 @@ async def agent_ctx(app, make_user):
         await s.close()
 
 
-async def ident_id(app, name):
+async def bystander(app, offset: int):
+    """A low-risk active identity no other test asserts on. Never use named seed people (e.g. Kai Chen): requests created here
+    add risk assessments, and tests/test_data_api.py checks the seeded latest assessment of specific people."""
     async with app.state.sessionmaker() as db:
-        return (await db.execute(select(Identity.id).where(Identity.full_name == name))).scalar_one()
+        return (await db.execute(text(
+            "SELECT i.id FROM identities i JOIN departments d ON d.id = i.department_id WHERE i.lifecycle_state = 'active' "
+            "AND i.risk_score < 40 AND d.name = 'Engineering' AND NOT EXISTS (SELECT 1 FROM lifecycle_requests r "
+            "WHERE r.identity_id = i.id AND r.status = 'pending_approval') ORDER BY i.employee_id OFFSET :o LIMIT 1"), {"o": offset})).scalar_one()
 
 
 async def audit_count(app, action):
@@ -39,8 +44,8 @@ async def audit_count(app, action):
 
 
 async def test_mover_preview_then_commit(app, agent_ctx):
-    gw, kai = ActionGateway(), await ident_id(app, "Kai Chen")
-    call = ToolCall(tool="modify_user_access", args={"identity_id": str(kai), "change": "mover", "to_department": "Finance"})
+    gw, who = ActionGateway(), await bystander(app, 0)
+    call = ToolCall(tool="modify_user_access", args={"identity_id": str(who), "change": "mover", "to_department": "Finance"})
     prev = await gw.run(await agent_ctx(), call)
     assert prev.ok and prev.decision in (policy.AUTO, policy.APPROVAL), prev
     assert prev.data["to_department"] == "Finance"
@@ -50,8 +55,8 @@ async def test_mover_preview_then_commit(app, agent_ctx):
 
 
 async def test_deprovision_always_needs_approval(app, agent_ctx):
-    gw, beth = ActionGateway(), await ident_id(app, "Beth Lambert")
-    call = ToolCall(tool="deprovision_user", args={"identity_id": str(beth), "reason": "Contract ended"})
+    gw, who = ActionGateway(), await bystander(app, 1)
+    call = ToolCall(tool="deprovision_user", args={"identity_id": str(who), "reason": "Contract ended"})
     prev = await gw.run(await agent_ctx(), call)
     assert prev.decision == policy.APPROVAL
     done = await gw.run(await agent_ctx(), call, mode="commit", expected_decision=policy.APPROVAL)
