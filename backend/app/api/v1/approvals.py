@@ -16,7 +16,7 @@ from app.core.errors import ApiError
 from app.models import (
     ApprovalRequest, Department, Identity, IdentityEntitlement, LifecycleRequest, LifecycleRequestEntitlement, RiskAssessment,
 )
-from app.services import audit, lifecycle, stats
+from app.services import audit, lifecycle, request_events, stats
 from app.services.accounts import Principal
 from app.services.cache import invalidate
 
@@ -78,6 +78,9 @@ async def _decide(approval_id: uuid.UUID, decision: str, body: DecisionIn, reque
                  details={"request": f"REQ-{req.ref_no}", "type": req.request_type, "comment": body.comment})
     await db.commit()      # one transaction: decision + side effects + audit, or nothing
     await invalidate(request)
+    await request_events.publish(request.app.state.redis, req.requested_by, {       # tell the requester in their chat
+        "ref": f"REQ-{req.ref_no}", "type": req.request_type, "identity": ident.full_name, "status": ap.status,
+        "decided_by": actor.full_name, "comment": body.comment or None})
     return {"id": ap.id, "ref": f"REQ-{req.ref_no}", "status": ap.status, "request_status": req.status,
             "note": ("Decision recorded. No live connector is configured, so no provisioning action was executed."
                      if decision == "approved" else "Request rejected.")}

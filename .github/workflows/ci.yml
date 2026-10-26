@@ -24,11 +24,11 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements*.txt
       - run: pip install -r requirements-dev.txt pytest-github-actions-annotate-failures
-      - name: Agent unit + contract tests
+      - name: Agent unit, contract and red-team tests
         env:
           JWT_SECRET_KEY: ci-only-jwt-secret-not-used-anywhere-else-000
           CSRF_SECRET: ci-only-csrf-secret-not-used-anywhere-else-000
-        run: pytest tests/agents/unit -q
+        run: pytest tests/agents/unit tests/agents/adversarial -q
 
   # Full suite against real PostgreSQL + Redis (tests/conftest.py migrates and seeds identityos_test).
   integration:

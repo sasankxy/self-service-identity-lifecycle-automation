@@ -450,6 +450,17 @@
       api('/agent/status').then((s) => { agentMode = (s.mode === 'graph' || selfService) && s.available; }).catch(() => {});
     };
     if (Auth.me) setupMode(); else document.addEventListener('auth:ready', setupMode, { once: true });
+    // approvals decided since the last check appear in the chat (only while the assistant page is open and the tab visible)
+    const pollEvents = async () => {
+      if (document.hidden || !$('page-ai-chat').classList.contains('active')) return;
+      try {
+        const r = await api('/agent/events');
+        r.events.forEach((e) => { box.querySelector('.chat-welcome')?.remove(); bubble('bot', renderBlocks(e.blocks)); });
+        if (r.events.length && window.refreshBadges) window.refreshBadges();
+      } catch { /* not signed in yet / offline: try again next tick */ }
+    };
+    setInterval(pollEvents, 20000);
+    document.addEventListener('visibilitychange', pollEvents);
     const bubble = (cls, node) => { const d = document.createElement('div'); d.className = `chat-bubble chat-bubble--${cls}`; d.append(node); box.appendChild(d); box.scrollTop = box.scrollHeight; return d; };
     async function send() {
       const text = input.value.trim(); if (!text) return;
@@ -530,6 +541,15 @@
     $('audit-prev').onclick = () => { AUD.offset = Math.max(0, AUD.offset - AUD.limit); loadAudit(); };
     $('audit-next').onclick = () => { AUD.offset += AUD.limit; loadAudit(); };
     $('audit-export').onclick = () => download(`/audit-logs/export?${audQuery()}`, 'audit-log.csv');
+    $('audit-verify').onclick = async () => {              // tamper evidence: the database recomputes every row's hash and link
+      const b = $('audit-verify'); b.disabled = true; b.textContent = 'Verifying…';
+      try {
+        const r = await api('/audit-logs/integrity');
+        if (r.ok) showToast(`Audit log intact: ${r.checked} entries verified. Head #${r.head.chain_seq} · ${r.head.row_hash.slice(0, 12)}…`, 'success', 6000);
+        else showToast(`Integrity check FAILED at entry #${r.breaks[0].chain_seq}: ${r.breaks[0].problem} (${r.breaks.length} problem(s))`, 'danger', 9000);
+      } catch (e) { showToast(e.message, 'danger'); }
+      b.disabled = false; b.textContent = 'Verify Integrity';
+    };
     $('camp-scope').onchange = (e) => { $('camp-dept-wrap').hidden = e.target.value !== 'department'; };
     $('campaign-form').addEventListener('submit', async (e) => {
       e.preventDefault(); const btn = $('camp-submit'); btn.disabled = true;

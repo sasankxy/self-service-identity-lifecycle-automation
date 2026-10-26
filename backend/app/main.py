@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 from sqlalchemy.pool import NullPool
 
 from app.agents import checkpoint, graph as agent_graph, llm as agent_llm
-from app.api.v1 import admin, agent, approvals, assistant, audit_logs, auth, dashboard, governance, identities, meta, risk
+from app.api.v1 import admin, agent, approvals, assistant, audit_integrity, audit_logs, auth, dashboard, governance, identities, meta, risk
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.services import nlu, scheduler
@@ -87,7 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return status
 
     app.include_router(auth.router, prefix="/api/v1")
-    for r in (admin, agent, approvals, assistant, audit_logs, dashboard, governance, identities, meta, risk):
+    for r in (admin, agent, approvals, assistant, audit_integrity, audit_logs, dashboard, governance, identities, meta, risk):
         app.include_router(r.router, prefix="/api/v1")
 
     frontend = Path(settings.frontend_dir)

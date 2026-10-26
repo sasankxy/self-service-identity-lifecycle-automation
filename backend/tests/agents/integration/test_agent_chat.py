@@ -1,7 +1,7 @@
 """End-to-end: HTTP -> conversation graph -> Action Gateway -> policy engine -> Postgres, with the real NLU."""
 from sqlalchemy import text
 
-from tests.agents.integration.conftest import QUIET_TARGET, bystander
+from tests.agents.integration.conftest import QUIET_TARGET, bystander, unheld_app
 
 API = "/api/v1/agent"
 
@@ -175,7 +175,7 @@ async def test_employee_self_service_end_to_end(as_role, app):
     c = await as_role("employee", email)                 # portal login with the same e-mail as the directory identity
     r = await chat(c, "What access do I have?", "sess-self-0001")
     assert "Current access" in texts(r) and name in texts(r), texts(r)
-    r = await chat(c, "I need access to GitHub", "sess-self-0002")
+    r = await chat(c, f"I need access to {await unheld_app(app, email)}", "sess-self-0002")
     assert r["awaiting_confirmation"] and "approval" in texts(r).lower(), texts(r)   # asking for yourself always needs an approver
     d = (await c.post(f"{API}/resume", {"session_id": "sess-self-0002", "call_id": r["call_id"], "confirm": True})).json()
     assert "submitted for approval" in texts(d), texts(d)
@@ -196,3 +196,23 @@ async def test_unlinked_employee_is_told_so(as_role):
     c = await as_role("employee", "nobody.in.directory@corp.com")
     r = await chat(c, "What access do I have?", "sess-self-0005")
     assert "isn't linked" in texts(r), texts(r)
+
+
+async def test_requester_sees_the_approval_decision_in_chat(as_role, app):
+    email = await bystander(app, 2, "email")
+    emp = await as_role("employee", email)
+    r = await chat(emp, f"I need access to {await unheld_app(app, email)}", "sess-events-01")
+    assert r["awaiting_confirmation"], texts(r)
+    d = (await emp.post(f"{API}/resume", {"session_id": "sess-events-01", "call_id": r["call_id"], "confirm": True})).json()
+    ref = next(t for t in texts(d).split() if t.startswith("REQ-")).rstrip(".")
+    assert (await emp.get(f"{API}/events")).json()["events"] == []
+
+    approver = await as_role("approver", "agent-approver@corp.com")
+    card = next(i for i in (await approver.get("/api/v1/approvals?status=pending&limit=100")).json()["items"] if i["ref"] == ref)
+    assert (await approver.post(f"/api/v1/approvals/{card['id']}/approve", {"comment": "ok for the release"})).status_code == 200
+
+    ev = (await emp.get(f"{API}/events")).json()["events"]
+    assert len(ev) == 1 and ev[0]["ref"] == ref and ev[0]["status"] == "approved"
+    shown = " ".join(b["text"] for b in ev[0]["blocks"])
+    assert "was approved by" in shown and "ok for the release" in shown
+    assert (await emp.get(f"{API}/events")).json()["events"] == []         # delivered once

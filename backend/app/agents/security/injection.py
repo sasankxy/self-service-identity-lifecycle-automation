@@ -16,7 +16,9 @@ _RULES: list[tuple[str, str]] = [
     ("system_spoof", r"(^|\s|[\[<{(])(system|assistant|developer)\s*[:>\]]|<\|?(im_start|system|endoftext)\|?>|###\s*(system|instruction)"),
     ("prompt_exfiltration", r"\b(reveal|show|print|repeat|leak|output)\b.{0,30}\b(system prompt|your (instructions|prompt|rules)|hidden prompt)\b"),
     ("approval_bypass", r"\b(auto[- ]?approve|approve (it|this|my|own)|self[- ]?approv\w*|skip (the )?approval|without (any )?approval|"
-                        r"mark (it|this) (as )?approved|no need (for|to get) approval)\b"),
+                        r"mark (it|this) (as )?approved|no need (for|to get) approval|"
+                        r"(consider|treat|count|take) (it|this|that) (as )?(already )?(approved|pre-?approved|signed off)|"
+                        r"(it'?s|it is|this is) (already )?(pre-?approved|approved by me))\b"),
     ("tool_smuggling", r"\b(call|invoke|run|execute|use)\b.{0,20}\b(tool|function)\b|\{\s*\"(tool|name|function)\"\s*:"),
     ("audit_evasion", r"\b(?:don'?t|do not|no need to|without|skip|avoid|stop)\s+(?:any\s+)?(?:log(?:ging)?|audit(?:ing)?|record(?:ing)?|"
                       r"trac(?:e|ing)|notify(?:ing)?|tell(?:ing)? (?:anyone|security|the approver))\b|\b(?:quietly|secretly|silently|off the books)\b"),

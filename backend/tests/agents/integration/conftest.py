@@ -28,3 +28,14 @@ async def as_role(new_client, make_user):
         assert (await c.login(email)).status_code == 200
         return c
     return _as
+
+
+async def unheld_app(app, email: str) -> str:
+    """A low/medium-risk application with exactly one entitlement that the identity does not hold (so a request is unambiguous)."""
+    async with app.state.sessionmaker() as db:
+        return (await db.execute(text(
+            "SELECT e.application FROM entitlements e GROUP BY e.application HAVING count(*) = 1 "
+            "AND bool_and(e.risk_level IN ('low','medium')) AND bool_and(NOT e.requires_approval) "
+            "AND NOT EXISTS (SELECT 1 FROM identity_entitlements ie JOIN identities i ON i.id = ie.identity_id JOIN entitlements x "
+            "ON x.id = ie.entitlement_id WHERE lower(i.email) = lower(:m) AND x.application = e.application AND ie.status IN ('active','pending')) "
+            "ORDER BY e.application LIMIT 1"), {"m": email})).scalar_one()

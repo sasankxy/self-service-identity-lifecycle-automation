@@ -21,7 +21,7 @@ from app.core.errors import ApiError
 from app.models import Identity
 from redis.exceptions import RedisError
 
-from app.services import memory
+from app.services import memory, request_events
 from app.services.ratelimit import RateLimiter
 from app.services.accounts import Principal
 
@@ -125,6 +125,20 @@ async def resume(body: ResumeIn, request: Request, actor: Principal = Depends(re
     with D.bound(await _deps(request, actor)) as dep:
         out = await graph.ainvoke(Command(resume={"confirm": body.confirm, "call_id": body.call_id}), cfg)
     return _reply(out, dep)
+
+
+@router.get("/events")
+async def events(request: Request, actor: Principal = Depends(require_permission("self:read"))):
+    """Outcomes of the caller's own requests since the last poll (approved / rejected), as chat blocks."""
+    out = []
+    for e in await request_events.drain(request.app.state.redis, actor.id):
+        verb = {"approved": "was approved", "rejected": "was rejected"}.get(e.get("status"), f"is now {e.get('status')}")
+        line = f"{e['ref']} ({e.get('type')} for {e.get('identity')}) {verb} by {e.get('decided_by')}."
+        blocks = [{"type": "heading", "text": "Update on your request"}, {"type": "text", "text": line}]
+        if e.get("comment"):
+            blocks.append({"type": "text", "text": f"Approver's comment: “{e['comment']}”"})
+        out.append({"ref": e["ref"], "status": e.get("status"), "at": e.get("at"), "blocks": blocks})
+    return {"events": out}
 
 
 @router.get("/trace")

@@ -338,7 +338,7 @@ async def test_deprovision_api_creates_a_pending_request_and_validates(app, as_r
     assert (await auditor.post(url, {"reason": "Resigned"})).status_code == 403
     assert (await admin.post(url, {"reason": "x"})).status_code == 422
     assert (await admin.post(f"{API}/identities/{uuid.uuid4()}/deprovision", {"reason": "Resigned"})).status_code == 404
-    assert (await admin.post(url, {"reason": "Resigned", "effective_date": (date.today() - timedelta(days=1)).isoformat()})).status_code == 422
+    assert (await admin.post(url, {"reason": "Resigned", "effective_date": (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()})).status_code == 422
     ok = await admin.post(url, {"reason": "Resigned, last day Friday"})
     assert ok.status_code == 202, ok.text
     body = ok.json()
