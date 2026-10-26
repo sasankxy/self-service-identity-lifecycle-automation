@@ -75,6 +75,7 @@ class ChatState(TypedDict, total=False):
     investigation: dict | None   # {"who", "what"} of a "why does X have Y?" question
     nlu_pre: dict | None         # NLU result computed in parallel with the sentinel's model check
     copilot_ref: int | None      # REQ number the approver copilot should brief
+    advisor: dict | None         # {"department", "question"} when a turn answers the advisor's follow-up
     result: dict | None
     blocks: list[dict]
     source: str
@@ -101,7 +102,7 @@ async def sentinel(state: ChatState) -> dict:
     clean, flags = sanitize(state.get("text") or "")
     v = injection.scan(clean)
     fresh = {"text": clean, "nlu": None, "intent": None, "via": None, "plan": None, "clauses": None, "investigation": None, "result": None,
-             "nlu_pre": None, "copilot_ref": None, "blocks": [], "trace": []}
+             "nlu_pre": None, "copilot_ref": None, "advisor": None, "blocks": [], "trace": []}
     score = None
     if not v.blocked:
         # fan out: the guard model judges the text while the NLU already parses it (the parse is discarded if blocked)
@@ -157,6 +158,9 @@ async def understand(state: ChatState) -> dict:
                 return {"pending": None, "route": "end", "source": SOURCE["memory"], "blocks": [narrator.text("Okay, I've dropped that request.")],
                         "trace": _step(state, "understand", t0, outcome="cancelled")}
             kind, hit = memory.apply_answer(pending, text_in)
+            if kind == "one" and pending.get("label") == "ADVISE":       # answer to the advisor's department question
+                return {"pending": None, "route": "advisor", "advisor": {"department": hit.get("department"), "question": hit.get("question")},
+                        "trace": _step(state, "understand", t0, intent="ADVISE", via="answer")}
             if kind == "one":
                 res, via = A._synthetic(pending, hit), "answer"
             elif kind == "many":
@@ -496,12 +500,19 @@ async def advisor(state: ChatState) -> dict:
 
     if D.self_mode(dep):
         return done(_self_help("Access recommendations for a role are for the IAM team."), outcome="self_only")
-    text_in = state["text"]
+    follow_up = state.get("advisor") or {}                 # set when this turn answers "Which department is this for?"
+    text_in = follow_up.get("question") or state["text"]
     depts = sorted(nlu.catalogue().get("departments") or [], key=len, reverse=True)
-    dept = next((d for d in depts if re.search(r"\b" + re.escape(d) + r"\b", text_in, re.IGNORECASE)), None)
+    dept = follow_up.get("department") or next(
+        (d for d in depts if re.search(r"\b" + re.escape(d) + r"\b", text_in, re.IGNORECASE)), None)
     if not dept:
-        return done([narrator.text("Which department is this for? For example: “What access should a new analyst in Finance get?”"),
-                     narrator.bullets(depts[:12])], outcome="need_department")
+        # remember the question so the next message ("IT Security", "it sec", "the second one") answers it
+        options = [{"value": d, "label": d, "aliases": nlu.DEPT_ALIASES.get(d, [])} for d in sorted(depts)]
+        ask = {"label": "ADVISE", "ask": "department", "question": "Which department is this for?", "options": options,
+               "slots": {"question": text_in}}
+        return {**done([narrator.text("Which department is this for? Pick one or type its name:")]
+                       + [{"type": "action", "label": d, "action": f"send:{d}"} for d in sorted(depts)], outcome="need_department"),
+                "pending": ask}
     async with dep.sessionmaker() as db:
         ctx = _gateway_ctx(db, dep, text_in)
         base = await ActionGateway().run(ctx, ToolCall(tool="get_department_baseline", args={"department": dept}, proposed_by="advisor"))

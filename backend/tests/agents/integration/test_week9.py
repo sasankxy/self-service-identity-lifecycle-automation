@@ -46,6 +46,10 @@ async def test_access_advisor(as_role):
     assert "Access for a new person in Finance" in texts(r) and "Standard profile" in texts(r), texts(r)
     r = await chat(c, "What access should a new hire get?", "sess-advisor-02")
     assert "Which department" in texts(r)
+    assert any(b["type"] == "action" and b["action"] == "send:IT Security" for b in r["blocks"])     # clickable choices
+    r = await chat(c, "IT Sec", "sess-advisor-02")                  # the follow-up answers the question
+    assert "Access for a new person in IT Security" in texts(r), texts(r)
+    assert next(t for t in r["trace"] if t["node"] == "understand")["via"] == "answer"
 
 
 async def test_approver_copilot_brief(as_role, app):
