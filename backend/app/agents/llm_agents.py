@@ -216,3 +216,23 @@ async def brief(llm: LLM, facts: dict) -> dict | None:
         return None
     out["reasons"] = [r[:200] for r in out.get("reasons") or [] if grounded(r, facts)][:3]
     return out
+
+
+ADVISE_SCHEMA = _obj({"summary": _S, "recommended": _LIST, "optional": _LIST, "avoid": _LIST})
+ADVISE_SYSTEM = _RULES + """
+Task: you are an access advisor applying least privilege. From <data> (the department's access profiles and the entitlements its
+current members commonly hold), recommend what a new person in the described role should get: "recommended" = the standard profile
+for that role; "optional" = commonly held extras that need a justification; "avoid" = high-risk access that should only come through
+a separate approved request. Use ONLY entitlement names that appear in <data>. summary: at most 3 sentences.
+"""
+
+
+async def advise(llm: LLM, facts: dict, question: str) -> dict | None:
+    out = await llm.json("investigator", ADVISE_SYSTEM, f"{data_block('user_request', question)}\n{data_block('data', facts)}",
+                         ADVISE_SCHEMA, max_tokens=900)
+    if not out or not grounded(out.get("summary", ""), facts):
+        return None
+    hay = json.dumps(facts, default=str).lower()
+    for k in ("recommended", "optional", "avoid"):          # only real entitlements from the facts survive
+        out[k] = [x for x in out.get(k) or [] if isinstance(x, str) and x.lower() in hay][:12]
+    return out

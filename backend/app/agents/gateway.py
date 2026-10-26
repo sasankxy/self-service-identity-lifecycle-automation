@@ -51,6 +51,7 @@ class ToolContext:
     settings: Any = None
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     user_text: str = ""                  # the (sanitised) human message, for the request record only
+    min_decision: str | None = None      # floor for write decisions, e.g. "approval" for agent-initiated remediation
 
 
 class Blocked(Exception):
@@ -153,6 +154,13 @@ class ActionGateway:
                 prepared.reasons = v.reasons + prepared.reasons
                 prepared.plan.reasons = prepared.reasons
             prepared.summary = {**prepared.summary, "verifier_rules": v.rules}
+        if ctx.min_decision and prepared.decision in EXECUTABLE:
+            floor = privilege.stricter(prepared.decision, ctx.min_decision)
+            if floor != prepared.decision:
+                why = "Changes proposed by an agent on its own initiative always go to a human approver."
+                prepared.decision, prepared.reasons = floor, [why, *prepared.reasons]
+                if prepared.plan is not None:
+                    prepared.plan.decision, prepared.plan.reasons = floor, prepared.reasons
         prepared.summary = {**prepared.summary, "decision": prepared.decision}
         return prepared
 

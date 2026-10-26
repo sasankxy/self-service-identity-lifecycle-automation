@@ -209,3 +209,14 @@ async def test_employee_can_give_up_own_access(employee):
     gw, me = make_gateway(target_email=employee.email)
     r = await gw.run(ctx_for(employee, me), modify(me.id, change="access_revocation"))
     assert r.ok
+
+
+async def test_min_decision_floor_forces_approval(admin):
+    done = []
+    gw, ident = make_gateway(plan_decision=policy.AUTO, committed=done)
+    ctx = ctx_for(admin, ident)
+    ctx.min_decision = policy.APPROVAL                        # agent-initiated (governance) changes always go to a person
+    r = await gw.run(ctx, modify(ident.id, change="access_revocation"))
+    assert r.decision == policy.APPROVAL and "own initiative" in r.reasons[0]
+    r = await gw.run(ctx, modify(ident.id, change="access_revocation"), mode="commit", expected_decision=policy.APPROVAL)
+    assert r.ok and done == [policy.APPROVAL]

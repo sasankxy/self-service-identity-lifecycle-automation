@@ -7,11 +7,13 @@
 
 Threads are keyed by (portal user, chat session), so one user can never read or resume another user's conversation.
 """
+import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Request
 from langgraph.types import Command
 from pydantic import BaseModel, Field
+from redis.exceptions import RedisError
 from sqlalchemy import func, select
 
 from app.agents import capabilities, deps as D, llm as agent_llm
@@ -19,9 +21,9 @@ from app.core import csrf
 from app.core.deps import require_permission
 from app.core.errors import ApiError
 from app.models import Identity
-from redis.exceptions import RedisError
 
 from app.services import memory, request_events
+from app.services.cache import invalidate
 from app.services.ratelimit import RateLimiter
 from app.services.accounts import Principal
 
@@ -139,6 +141,45 @@ async def events(request: Request, actor: Principal = Depends(require_permission
             blocks.append({"type": "text", "text": f"Approver's comment: “{e['comment']}”"})
         out.append({"ref": e["ref"], "status": e.get("status"), "at": e.get("at"), "blocks": blocks})
     return {"events": out}
+
+
+class RemediateIn(BaseModel):
+    limit: int = Field(10, ge=1, le=50)
+    finding_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+
+@router.post("/governance/remediate")
+async def remediate(body: RemediateIn, request: Request, actor: Principal = Depends(require_permission("governance:manage"))):
+    """Run the governance agent now: open findings -> investigation -> remediation proposals in the approvals queue."""
+    from app.agents import governance
+    agent_llm.start_turn(request.app.state.settings.agent_llm_max_calls * body.limit, 25.0 * body.limit)
+    out = await governance.remediate(request.app.state.sessionmaker, request.app.state.redis, request.app.state.settings,
+                                     getattr(request.app.state, "agent_llm", None), limit=body.limit, finding_ids=body.finding_ids or None)
+    await invalidate(request)
+    return {**out, "requested_by": actor.email, "llm_calls": len(agent_llm.turn_calls())}
+
+
+@router.get("/approvals/{approval_id}/brief")
+async def approval_brief(approval_id: uuid.UUID, request: Request, actor: Principal = Depends(require_permission("approvals:read"))):
+    """Approver Copilot for one queue item: deterministic facts + (with an LLM) a grounded, advisory recommendation."""
+    from app.agents import llm_agents
+    from app.agents.contract import ToolCall
+    from app.agents.gateway import ActionGateway, ToolContext
+    from app.models import ApprovalRequest, LifecycleRequest
+    agent_llm.start_turn(2, 20.0)
+    async with request.app.state.sessionmaker() as db:
+        ref = (await db.execute(select(LifecycleRequest.ref_no).join(ApprovalRequest, ApprovalRequest.lifecycle_request_id == LifecycleRequest.id)
+                                .where(ApprovalRequest.id == approval_id))).scalar_one_or_none()
+        if ref is None:
+            raise ApiError(404, "not_found", "Approval request not found.")
+        ctx = ToolContext(db=db, actor=actor, cap=capabilities.mint(actor, tools={"get_request_details"}), request=request,
+                          redis=request.app.state.redis, settings=request.app.state.settings)
+        r = await ActionGateway().run(ctx, ToolCall(tool="get_request_details", args={"ref_no": ref}, proposed_by="copilot"))
+    if not r.ok:
+        raise ApiError(403 if r.error in ("forbidden", "capability_denied") else 422, r.error or "error", (r.reasons or ("Not available.",))[0])
+    llm = getattr(request.app.state, "agent_llm", None)
+    advice = await llm_agents.brief(llm, r.data) if llm else None
+    return {"facts": r.data, "advice": advice, "llm": bool(advice)}
 
 
 @router.get("/trace")

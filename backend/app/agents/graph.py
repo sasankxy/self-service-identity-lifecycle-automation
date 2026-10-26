@@ -47,6 +47,8 @@ WHY_RE = re.compile(r"^\s*why\s+(?:(?:does|do|did|is|has)\s+)?(?P<who>.+?)\s+(?:
                     r"(?:access\s+to\s+|the\s+)?(?P<what>.+?)(?:\s+(?:access|rights|permissions?|role|entitlement))?\s*\??\s*$", re.IGNORECASE)
 COPILOT_RE = re.compile(r"\b(?:brief|should\s+(?:i|we)\s+(?:approve|reject)|assess|analy[sz]e|review|summary|summari[sz]e|explain)\b"
                         r".*?\bREQ[-\s]?(?P<ref>\d{1,8})\b", re.IGNORECASE)
+ADVISOR_RE = re.compile(r"\b(?:what|which)\s+(?:access|entitlements|permissions|apps|applications)\s+(?:should|would|ought\s+to)\b"
+                        r"|\brecommend(?:ed)?\s+(?:access|entitlements)\b|\bleast[- ]privilege\b|\bstandard\s+access\s+for\b", re.IGNORECASE)
 PRONOUN_RE = re.compile(r"\b(he|him|his|she|her|hers|they|them|their)\b", re.IGNORECASE)
 SOURCE = {"blocked": "Blocked by the agent's input guard (no model was used).",
           "memory": "Conversation memory (this chat only).",
@@ -132,6 +134,8 @@ async def understand(state: ChatState) -> dict:
     t0, A = time.perf_counter(), _assistant()
     text_in, pending, via = state["text"], state.get("pending"), None
     if not pending:
+        if ADVISOR_RE.search(text_in):
+            return {"route": "advisor", "trace": _step(state, "understand", t0, intent="ADVISE")}
         c = COPILOT_RE.search(text_in)
         if c:
             return {"route": "copilot", "copilot_ref": int(c["ref"]), "trace": _step(state, "understand", t0, intent="BRIEF")}
@@ -482,6 +486,48 @@ async def investigate(state: ChatState) -> dict:
                 recommendation=advice["recommendation"] if advice else None)
 
 
+async def advisor(state: ChatState) -> dict:
+    """Access Advisor: least-privilege recommendation for a role in a department, from the department's access profiles and what its
+    current members actually hold (read tools through the gateway), worded by the LLM when available. Recommends; never grants."""
+    t0, dep = time.perf_counter(), D.current()
+
+    def done(blocks, **kw):
+        return {"blocks": blocks, "route": "end", "source": SOURCE["agent"], "trace": _step(state, "advisor", t0, **kw)}
+
+    if D.self_mode(dep):
+        return done(_self_help("Access recommendations for a role are for the IAM team."), outcome="self_only")
+    text_in = state["text"]
+    depts = sorted(nlu.catalogue().get("departments") or [], key=len, reverse=True)
+    dept = next((d for d in depts if re.search(r"\b" + re.escape(d) + r"\b", text_in, re.IGNORECASE)), None)
+    if not dept:
+        return done([narrator.text("Which department is this for? For example: “What access should a new analyst in Finance get?”"),
+                     narrator.bullets(depts[:12])], outcome="need_department")
+    async with dep.sessionmaker() as db:
+        ctx = _gateway_ctx(db, dep, text_in)
+        base = await ActionGateway().run(ctx, ToolCall(tool="get_department_baseline", args={"department": dept}, proposed_by="advisor"))
+        peers = await ActionGateway().run(ctx, ToolCall(tool="peer_access_stats", args={"department": dept, "min_share": 0.3}, proposed_by="advisor"))
+    if not (base.ok and peers.ok):
+        return done(narrator.error_blocks((base if not base.ok else peers).model_dump(mode="json")), outcome="error")
+    facts = {"department": dept, "access_profiles": base.data["profiles"], "population": peers.data["population"],
+             "commonly_held": peers.data["common"]}
+    blocks = [narrator.head(f"Access for a new person in {dept}")]
+    for prof, ents in base.data["profiles"].items():
+        blocks += [narrator.text(f"Standard profile “{prof}”:"), narrator.bullets(ents)]
+    common = [f"{c['entitlement']} ({c['application']}) · {c['risk_level']} risk · held by {round(c['share'] * 100)}% of {peers.data['population']}"
+              for c in peers.data["common"]]
+    if common:
+        blocks += [narrator.text("What people in this department actually hold:"), narrator.bullets(common[:10])]
+    advice = await llm_agents.advise(dep.llm, facts, text_in) if dep.llm else None
+    if advice:
+        blocks += [narrator.head("Advisor (AI, advisory)"), narrator.text(advice["summary"])]
+        for label, key in (("Recommended", "recommended"), ("Optional, with a justification", "optional"), ("Avoid by default", "avoid")):
+            if advice.get(key):
+                blocks.append(narrator.kv([(label, ", ".join(advice[key]))]))
+    if len(base.data["profiles"]) == 1 and dep.actor.can("identities:write"):
+        blocks.append({"type": "action", "label": "Onboard someone with this profile", "action": "open-onboard"})
+    return done(blocks, outcome="advice", department=dept, llm=bool(advice))
+
+
 async def copilot(state: ChatState) -> dict:
     """Approver Copilot: deterministic facts about REQ-n (read tool) + an LLM recommendation. Advice only; it never decides."""
     t0, dep, ref = time.perf_counter(), D.current(), state["copilot_ref"]
@@ -570,14 +616,16 @@ def build(checkpointer: Any):
     g.add_node("multi", multi)
     g.add_node("investigate", investigate)
     g.add_node("copilot", copilot)
+    g.add_node("advisor", advisor)
     g.add_node("confirm", confirm)
     g.add_edge(START, "sentinel")
     g.add_conditional_edges("sentinel", _route, {"understand": "understand", "end": END})
     g.add_conditional_edges("understand", _route, {"lifecycle": "lifecycle", "directory": "directory", "multi": "multi",
-                                                   "investigate": "investigate", "copilot": "copilot", "end": END})
+                                                   "investigate": "investigate", "copilot": "copilot", "advisor": "advisor", "end": END})
     g.add_conditional_edges("multi", _route, {"confirm": "confirm", "end": END})
     g.add_edge("investigate", END)
     g.add_edge("copilot", END)
+    g.add_edge("advisor", END)
     g.add_edge("directory", END)
     g.add_conditional_edges("lifecycle", _route, {"confirm": "confirm", "end": END})
     g.add_edge("confirm", END)

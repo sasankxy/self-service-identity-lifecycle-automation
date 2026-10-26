@@ -35,6 +35,11 @@ async def scan_loop(app, interval_s: float, initial_delay_s: float = 0) -> None:
                 if out:
                     log.info("governance scan: %s opened, %s resolved, %s open, %s scheduled request(s) applied",
                              out["opened"], out["resolved"], out["open_total"], out["applied_due"])
+                if out and app.state.settings.agent_auto_remediate:      # opt-in: the governance agent proposes fixes for approval
+                    from app.agents import governance, llm as agent_llm
+                    agent_llm.start_turn(app.state.settings.agent_llm_max_calls * 10, 250.0)
+                    await governance.remediate(app.state.sessionmaker, app.state.redis, app.state.settings,
+                                               getattr(app.state, "agent_llm", None), limit=10)
         except asyncio.CancelledError:
             raise
         except Exception:

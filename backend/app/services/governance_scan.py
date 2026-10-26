@@ -45,8 +45,9 @@ async def sync_findings(db: AsyncSession, detections: list[detection.Detection],
             opened.append(f)
         else:                                            # still open (refresh) or still dismissed (stay dismissed)
             f.last_detected_at = now
-            if f.status == "open":
-                f.severity, f.title, f.details = d.severity, d.title, d.details
+            if f.status == "open":                       # keep a remediation proposal the governance agent attached
+                keep = {"remediation": f.details["remediation"]} if (f.details or {}).get("remediation") else {}
+                f.severity, f.title, f.details = d.severity, d.title, {**d.details, **keep}
     resolved = 0
     for key, f in existing.items():
         if f.status == "open" and key not in current:

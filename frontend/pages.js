@@ -259,7 +259,8 @@
     const decided = a.status !== 'pending';
     const actions = decided
       ? `<div class="approval-actions" style="justify-content:space-between"><span class="kpi-subtext">${esc(cap(a.status))} ${timeAgo(a.decided_at)}${a.decision_comment ? ` · ${esc(a.decision_comment)}` : ''}</span>${pill(a.status === 'approved' ? 'success' : 'danger', a.status.toUpperCase())}</div>`
-      : can('approvals:decide') ? `<div class="approval-actions"><button class="btn-secondary btn-sm" data-decide="reject" data-id="${a.id}">Reject</button>
+      : can('approvals:decide') ? `<div class="approval-actions"><button class="btn-secondary btn-sm" data-brief="${a.id}" title="Approver Copilot: facts and an advisory recommendation">AI brief</button>
+          <button class="btn-secondary btn-sm" data-decide="reject" data-id="${a.id}">Reject</button>
           <button class="${okBtn} btn-sm" data-decide="approve" data-id="${a.id}">${okLabel}</button></div>` : '';
     return `<div class="card approval-card${a.priority === 'urgent' && !decided ? ' approval-card--urgent' : ''}" data-card="${a.id}">
       <div class="approval-top"><div class="approval-header-left"><span class="approval-type-tag approval-type-tag--${cls}">${label}</span><span class="approval-req-id">${esc(a.ref)}</span></div>
@@ -282,6 +283,30 @@
       $('approvals-count').textContent = `${d.counts.pending} pending item${d.counts.pending === 1 ? '' : 's'}`;
       const b = $('appr-badge'); b.textContent = d.counts.pending; b.hidden = d.counts.pending === 0; $('notif-dot').hidden = d.counts.pending === 0;
     } catch (e) { grid.innerHTML = `<div class="card"><div class="pu-state pu-state--error">${esc(e.message)} <button class="btn-secondary btn-xs" id="appr-retry">Retry</button></div></div>`; const r = $('appr-retry'); if (r) r.onclick = loadApprovals; }
+  }
+  function remediationNote(m) {              // what the governance agent did with this finding
+    if (!m) return '';
+    const txt = m.status === 'proposed' ? `Agent proposed ${m.ref} (${m.tool === 'deprovision_user' ? 'offboard' : 'revoke'}) — in the approvals queue`
+      : m.status === 'kept_on_advice' ? 'Agent reviewed: access looks justified, no change proposed' : `Agent advice: ${m.next_step || ''}`;
+    const ai = m.advice ? ` · AI: ${m.advice.recommendation}` : '';
+    return `<div class="finding-meta" style="margin-top:.25rem"><span class="status-pill status-pill--${m.status === 'proposed' ? 'pending' : 'neutral'}">${esc(txt + ai)}</span></div>`;
+  }
+  async function brief(btn) {                // Approver Copilot: deterministic facts + grounded, advisory LLM recommendation
+    const card = btn.closest('.approval-card'); const old = card.querySelector('.copilot-brief'); if (old) { old.remove(); return; }
+    btn.disabled = true; btn.textContent = 'Thinking…';
+    try {
+      const r = await api(`/agent/approvals/${btn.dataset.brief}/brief`); const f = r.facts;
+      const changes = f.changes.map((c) => `${c.action} ${c.entitlement} (${c.risk_level}${c.in_baseline ? '' : ', outside baseline'})`).join('; ') || 'none';
+      const rows = [['Person risk', `${f.identity.risk_score}/100 (${f.identity.risk_level})`], ['Changes', changes],
+        ['SoD conflicts', f.separation_of_duties_conflicts.join(', ') || 'none'], ['Requester flags', f.requester_flags.join('; ') || 'none']];
+      const ADV = { approve: ['success', 'Approve'], reject: ['danger', 'Reject'], request_more_info: ['warning', 'Ask for more info'] };
+      const adv = r.advice ? `<div style="margin-top:.5rem"><span class="status-pill status-pill--${ADV[r.advice.recommendation][0]}">AI suggests: ${ADV[r.advice.recommendation][1]}</span>
+          <p style="margin:.4rem 0">${esc(r.advice.summary)}</p>${r.advice.reasons.length ? `<ul style="margin:0;padding-left:1.1rem">${r.advice.reasons.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+          <div class="kpi-subtext">Advisory only — you make the decision.</div></div>` : '<div class="kpi-subtext" style="margin-top:.4rem">No AI recommendation available (facts only).</div>';
+      card.querySelector('.approval-actions').insertAdjacentHTML('beforebegin', `<div class="copilot-brief chat-step-box" style="margin:.6rem 0">
+        ${rows.map(([k, v]) => `<div><span class="meta-label">${esc(k)}: </span>${esc(v)}</div>`).join('')}${adv}</div>`);
+    } catch (e) { showToast(e.message, 'danger'); }
+    btn.disabled = false; btn.textContent = 'AI brief';
   }
   async function decide(btn) {
     const card = btn.closest('.approval-card'); card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
@@ -373,7 +398,7 @@
       $('gov-scan-meta').textContent = ls ? `Last scan ${timeAgo(ls.finished_at)} (${ls.trigger}) · ${ls.identities_scanned} identities · ${c.orphan} orphaned, ${c.creep} creep` : 'No scan has run yet. Use “Scan now”.';
       ul.innerHTML = d.items.length ? d.items.map((f) => { const [cls, lbl] = FSEV[f.severity] || FSEV.low;
         return `<li class="sod-item finding-item"><div class="sod-body"><div class="sod-title"><span class="status-pill status-pill--${cls}">${lbl}</span>${esc(f.title)}</div>
-          <div class="finding-meta"><span class="mono">${esc(f.identity.email)}</span> · ${esc(FRULE[f.rule] || f.rule)}${f.identity.department ? ' · ' + esc(f.identity.department) : ''} · detected ${timeAgo(f.first_detected_at)}</div></div>
+          <div class="finding-meta"><span class="mono">${esc(f.identity.email)}</span> · ${esc(FRULE[f.rule] || f.rule)}${f.identity.department ? ' · ' + esc(f.identity.department) : ''} · detected ${timeAgo(f.first_detected_at)}</div>${remediationNote(f.details && f.details.remediation)}</div>
           <div class="finding-actions"><button class="btn-secondary btn-xs" data-view="${f.identity.id}">Review</button>
           ${can('governance:manage') ? `<button class="btn-secondary btn-xs" data-dismiss-finding="${f.id}">Dismiss</button>` : ''}</div></li>`; }).join('')
         : '<li class="pu-state">No open findings. The scheduler re-checks the directory periodically.</li>';
@@ -538,6 +563,14 @@
       try { const r = await api('/governance/scan', { method: 'POST' }); showToast(`Scan done: ${r.opened} new, ${r.resolved} resolved, ${r.open_total} open.`, 'success'); await loadFindings(); }
       catch (err) { showToast(err.message, 'danger'); } finally { b.disabled = false; b.textContent = 'Scan now'; }
     };
+    $('gov-remediate').onclick = async (e) => {   // governance agent: findings -> investigation -> proposals (always for approval)
+      const b = e.currentTarget; b.disabled = true; b.textContent = 'Agents working…';
+      try {
+        const r = await api('/agent/governance/remediate', { method: 'POST', body: { limit: 10 } });
+        showToast(`Governance agent: ${r.proposed.length} fix(es) proposed for approval, ${r.advice.length} advice, ${r.skipped.length} skipped.`, 'success', 7000);
+        await loadFindings(); if (window.refreshBadges) window.refreshBadges();
+      } catch (err) { showToast(err.message, 'danger'); } finally { b.disabled = false; b.textContent = 'Propose fixes (AI)'; }
+    };
     $('audit-prev').onclick = () => { AUD.offset = Math.max(0, AUD.offset - AUD.limit); loadAudit(); };
     $('audit-next').onclick = () => { AUD.offset += AUD.limit; loadAudit(); };
     $('audit-export').onclick = () => download(`/audit-logs/export?${audQuery()}`, 'audit-log.csv');
@@ -576,6 +609,7 @@
       }
       const view = e.target.closest('[data-view]'); if (view) return openIdentity(view.dataset.view);
       const dec = e.target.closest('[data-decide]'); if (dec) return decide(dec);
+      const br = e.target.closest('[data-brief]'); if (br) return brief(br);
       const nav = e.target.closest('[data-nav]'); if (nav) return navigateTo(nav.dataset.nav);
       const aq = e.target.closest('[data-audit-q]'); if (aq) { AUD.q = aq.dataset.auditQ; $('audit-search').value = AUD.q; AUD.offset = 0; navigateTo('audit'); }
     });

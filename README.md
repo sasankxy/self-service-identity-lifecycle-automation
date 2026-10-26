@@ -144,3 +144,13 @@ POST /api/v1/agent/chat -> LangGraph conversation graph (state checkpointed in P
   AI Assistant, which covers *their own* access: "what access do I have?", "why do I have X?", "I need access to GitHub",
   "remove my Zoom access". The login is linked to the directory identity with the same e-mail, and anything they ask for
   themselves goes to an approver.
+* **Governance agent:** the *Propose fixes (AI)* button on Governance (or `POST /api/v1/agent/governance/remediate`; set
+  `AGENT_AUTO_REMEDIATE=true` to run after each scheduled scan). It investigates open findings and proposes fixes: creep becomes a
+  revocation, leavers or expired accounts become an offboarding. Every proposal goes to the approvals queue (gateway
+  `min_decision=approval`), made as a disabled system account. Dormant, ownerless and manager-departed findings get advice only.
+* **Approver Copilot:** the *AI brief* button on each pending approval shows the facts (risk, baseline fit, SoD, requester history)
+  and an advisory approve/reject/more-info recommendation. In chat: "should I approve REQ-123?".
+* **Access Advisor:** ask "what access should a new analyst in Finance get?" for the standard profile, what peers actually hold, and
+  a least-privilege recommendation.
+* **Security extras:** red-team suite (`tests/agents/adversarial`, live: `python -m eval.redteam`), a hash-chained audit log
+  (*Verify Integrity* on Audit Logs), and approval decisions shown in the requester's chat.

@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     agent_llm_max_calls: int = Field(6, ge=0, le=20)                  # per chat turn
     agent_llm_turn_deadline_s: float = Field(30.0, ge=1, le=300)      # total model time per chat turn; later calls are skipped
     agent_rate_limit_per_minute: int = Field(30, ge=1, le=1000)       # chat turns per user per minute (protects the LLM quota)
+    agent_auto_remediate: bool = False   # after each scheduled scan, the governance agent proposes fixes (always for approval)
 
     # --- JWT ---
     jwt_algorithm: str = "HS256"
