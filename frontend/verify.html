@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Verify your identity · IdentityOS</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f1f5f9; --card: #fff; --text: #0f172a; --muted: #64748b; --line: #cbd5e1; --accent: #1d4ed8; --bad: #b91c1c; --good: #15803d; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8; --line: #334155; --accent: #60a5fa; --bad: #f87171; --good: #4ade80; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+    main { width: 100%; max-width: 480px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+    h1 { margin: 0 0 8px; font-size: 1.3rem; } p { margin: 8px 0; } .muted { color: var(--muted); font-size: .9rem; }
+    input[type=file] { display: block; width: 100%; margin: 16px 0; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+    label { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; font-size: .92rem; }
+    button { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; } .good { color: var(--good); font-weight: 600; } .bad { color: var(--bad); font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Verify your identity</h1>
+  <p id="msg" class="muted">Checking your link…</p>
+  <form id="form" hidden>
+    <p>Upload a clear photo or scan of your Aadhaar card, with the QR code visible. You can use a masked Aadhaar.</p>
+    <input id="file" type="file" accept="image/jpeg,image/png" required />
+    <label><input id="consent" type="checkbox" required />
+      <span>I consent to my Aadhaar card being used once to verify my identity for onboarding. The image is read on the company's server and deleted straight away; only the result and the last 4 digits are kept.</span></label>
+    <button id="go" type="submit">Verify</button>
+  </form>
+</main>
+<script>
+  const token = location.hash.slice(1); history.replaceState(null, '', location.pathname);
+  const API = '/api/v1/public/aadhaar', H = { 'X-Verification-Token': token };
+  const msg = document.getElementById('msg'), form = document.getElementById('form'), go = document.getElementById('go');
+  const say = (t, cls) => { msg.textContent = t; msg.className = cls || 'muted'; };
+  const DONE = { verified: ['Verified. You can close this page.', 'good'], review: ['Received. Your HR team will review it and get back to you.', 'good'] };
+  fetch(API, { headers: H }).then(async (r) => {
+    const d = await r.json();
+    if (!r.ok) return say(d.error.message, 'bad');
+    say(`Hello ${d.first_name}.`); form.hidden = false;
+  }).catch(() => say('Could not reach the server. Please try again.', 'bad'));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault(); go.disabled = true; say('Verifying…');
+    const body = new FormData(); body.append('file', document.getElementById('file').files[0]); body.append('consent', document.getElementById('consent').checked);
+    try {
+      const r = await fetch(API, { method: 'POST', headers: H, body }); const d = await r.json();
+      if (!r.ok) return say(d.error.message, 'bad');
+      if (DONE[d.status]) { form.hidden = true; return say(...DONE[d.status]); }
+      say(`We could not verify this card against your onboarding details. Check the photo and try again (${d.attempts_left} attempts left), or contact HR.`, 'bad');
+    } catch { say('Upload failed. Please try again.', 'bad'); } finally { go.disabled = false; }
+  });
+</script>
+</body>
+</html>

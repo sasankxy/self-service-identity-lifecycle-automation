@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     agent_rate_limit_per_minute: int = Field(30, ge=1, le=1000)       # chat turns per user per minute (protects the LLM quota)
     agent_auto_remediate: bool = False   # after each scheduled scan, the governance agent proposes fixes (always for approval)
 
+    # --- Aadhaar verification of joiners ---
+    aadhaar_required: bool = False       # true: a joiner request can't be approved until the Aadhaar check passes
+    aadhaar_uidai_cert_path: str = ""    # UIDAI's public certificate (PEM); without it the secure QR signature can't be checked
+
     # --- JWT ---
     jwt_algorithm: str = "HS256"
     jwt_secret_key: str = ""            # HS* algorithms

@@ -12,6 +12,7 @@ MAX_LEN = 500
 _INVISIBLE = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿­]")
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SPACES = re.compile(r"\s+")
+_AADHAAR = re.compile(r"(?<!\d)\d{4}[ -]?\d{4}[ -]?(\d{4})(?!\d)")
 _HOMOGLYPHS = str.maketrans({
     "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x", "і": "i", "ј": "j", "ѕ": "s", "ԁ": "d", "һ": "h",
     "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T", "Х": "X",
@@ -35,6 +36,10 @@ def sanitize(text: str, max_len: int = MAX_LEN) -> tuple[str, list[str]]:
     if t4 != t3:
         flags.append("homoglyphs_folded")
     t5 = _SPACES.sub(" ", t4).strip()
+    masked = _AADHAAR.sub(lambda m: f"XXXX XXXX {m[1]}", t5)   # never let an Aadhaar number reach the NLU, an LLM, memory or the audit log
+    if masked != t5:
+        t5 = masked
+        flags.append("aadhaar_masked")
     if len(t5) > max_len:
         t5 = t5[:max_len]
         flags.append("truncated")

@@ -257,6 +257,9 @@
     const risk = a.risk ? pill(LEVEL_CLS[a.risk.level], `Score: ${a.risk.score} (${cap(a.risk.level)})`) : pill('neutral', 'Not assessed');
     const reasonLabel = a.type === 'leaver' ? 'Reason' : 'Justification';
     const decided = a.status !== 'pending';
+    const AAD = { verified: ['success', 'Aadhaar verified'], review: ['warning', 'Aadhaar: needs review'], failed: ['danger', 'Aadhaar failed'], pending: ['pending', 'Aadhaar: awaiting joiner'], not_started: ['neutral', 'Aadhaar not started'] };
+    const aad = a.type === 'joiner' ? `<div style="margin:.5rem 0;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><span class="status-pill status-pill--${AAD[a.aadhaar][0]}">${AAD[a.aadhaar][1]}</span>
+      ${!decided && a.aadhaar !== 'verified' && can('identities:write') ? `<button class="btn-secondary btn-xs" data-aadhaar="${a.identity.id}">Create verification link</button>` : ''}</div>` : '';
     const actions = decided
       ? `<div class="approval-actions" style="justify-content:space-between"><span class="kpi-subtext">${esc(cap(a.status))} ${timeAgo(a.decided_at)}${a.decision_comment ? ` · ${esc(a.decision_comment)}` : ''}</span>${pill(a.status === 'approved' ? 'success' : 'danger', a.status.toUpperCase())}</div>`
       : can('approvals:decide') ? `<div class="approval-actions"><button class="btn-secondary btn-sm" data-brief="${a.id}" title="Approver Copilot: facts and an advisory recommendation">AI brief</button>
@@ -266,7 +269,7 @@
       <div class="approval-top"><div class="approval-header-left"><span class="approval-type-tag approval-type-tag--${cls}">${label}</span><span class="approval-req-id">${esc(a.ref)}</span></div>
         <span class="approval-time mono">${timeAgo(a.requested_at)}</span></div>
       <h3 class="approval-title">${esc(title)}</h3>
-      <div class="approval-systems">${chips.join('') || '<span class="kpi-subtext">No entitlement changes</span>'}</div>
+      ${aad}<div class="approval-systems">${chips.join('') || '<span class="kpi-subtext">No entitlement changes</span>'}</div>
       <div class="approval-meta-grid">
         <div><span class="meta-label">Effective Date:</span> <span class="meta-val">${fmtDate(a.effective_date)}</span></div>
         <div><span class="meta-label">Requester:</span> <span class="meta-val">${esc(a.requester || '—')}</span></div>
@@ -291,6 +294,14 @@
     const ai = m.advice ? ` · AI: ${m.advice.recommendation}` : '';
     return `<div class="finding-meta" style="margin-top:.25rem"><span class="status-pill status-pill--${m.status === 'proposed' ? 'pending' : 'neutral'}">${esc(txt + ai)}</span></div>`;
   }
+  async function aadhaarLink(btn) {          // one-time link for the joiner; the date of birth is what the card is checked against
+    const dob = prompt("Joiner's date of birth from HR records (YYYY-MM-DD):"); if (!dob) return;
+    try {
+      const r = await api(`/identities/${btn.dataset.aadhaar}/aadhaar/link`, { method: 'POST', body: { date_of_birth: dob.trim() } });
+      prompt('Send this link to the joiner (valid for 7 days):', location.origin + r.url);
+      loadApprovals();
+    } catch (e) { showToast(e.message, 'danger'); }
+  }
   async function brief(btn) {                // Approver Copilot: deterministic facts + grounded, advisory LLM recommendation
     const card = btn.closest('.approval-card'); const old = card.querySelector('.copilot-brief'); if (old) { old.remove(); return; }
     btn.disabled = true; btn.textContent = 'Thinking…';
@@ -298,7 +309,7 @@
       const r = await api(`/agent/approvals/${btn.dataset.brief}/brief`); const f = r.facts;
       const changes = f.changes.map((c) => `${c.action} ${c.entitlement} (${c.risk_level}${c.in_baseline ? '' : ', outside baseline'})`).join('; ') || 'none';
       const rows = [['Person risk', `${f.identity.risk_score}/100 (${f.identity.risk_level})`], ['Changes', changes],
-        ['SoD conflicts', f.separation_of_duties_conflicts.join(', ') || 'none'], ['Requester flags', f.requester_flags.join('; ') || 'none']];
+        ['SoD conflicts', f.separation_of_duties_conflicts.join(', ') || 'none'], ...(f.type === 'joiner' ? [['Aadhaar', [f.aadhaar_verification.status, ...Object.values(f.aadhaar_verification.checks || {})].join(' · ')]] : []), ['Requester flags', f.requester_flags.join('; ') || 'none']];
       const ADV = { approve: ['success', 'Approve'], reject: ['danger', 'Reject'], request_more_info: ['warning', 'Ask for more info'] };
       const adv = r.advice ? `<div style="margin-top:.5rem"><span class="status-pill status-pill--${ADV[r.advice.recommendation][0]}">AI suggests: ${ADV[r.advice.recommendation][1]}</span>
           <p style="margin:.4rem 0">${esc(r.advice.summary)}</p>${r.advice.reasons.length ? `<ul style="margin:0;padding-left:1.1rem">${r.advice.reasons.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
@@ -610,6 +621,7 @@
       const view = e.target.closest('[data-view]'); if (view) return openIdentity(view.dataset.view);
       const dec = e.target.closest('[data-decide]'); if (dec) return decide(dec);
       const br = e.target.closest('[data-brief]'); if (br) return brief(br);
+      const lk = e.target.closest('[data-aadhaar]'); if (lk) return aadhaarLink(lk);
       const nav = e.target.closest('[data-nav]'); if (nav) return navigateTo(nav.dataset.nav);
       const aq = e.target.closest('[data-audit-q]'); if (aq) { AUD.q = aq.dataset.auditQ; $('audit-search').value = AUD.q; AUD.offset = 0; navigateTo('audit'); }
     });

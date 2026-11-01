@@ -112,6 +112,12 @@ async def explain_entitlement_origin(ctx, a: S.ExplainEntitlementOrigin) -> dict
     return {"identity": {"id": str(ident.id), "name": ident.full_name}, "department": dept.name if dept else None, "entitlements": out}
 
 
+async def _aadhaar_status(db, identity_id) -> dict:
+    from app.models import IdentityVerification
+    v = (await db.execute(select(IdentityVerification).where(IdentityVerification.identity_id == identity_id))).scalar_one_or_none()
+    return {"status": v.status, "checks": {k: c["detail"] for k, c in (v.checks or {}).items()}} if v else {"status": "not_started"}
+
+
 async def get_request_details(ctx, a: S.GetRequestDetails) -> dict:
     """Facts for the Approver Copilot. Deterministic; the copilot only words and weighs them."""
     from app.models import LifecycleRequestEntitlement, RiskAssessment, User
@@ -144,7 +150,7 @@ async def get_request_details(ctx, a: S.GetRequestDetails) -> dict:
             "requested_by": req.requester_name, "justification": (req.justification or "")[:300],
             "changes": [{"action": act, "entitlement": e.name, "application": e.application, "risk_level": e.risk_level,
                          "in_baseline": e.id in baseline, "requires_approval": e.requires_approval} for e, act in deltas],
-            "separation_of_duties_conflicts": sod_hits,
+            "separation_of_duties_conflicts": sod_hits, "aadhaar_verification": await _aadhaar_status(ctx.db, ident.id),
             "requester_flags": await policy.requester_flags(ctx.db, req.requested_by) if req.requested_by else [],
             "risk_triggers": [t.get("label") for t in (risk.triggers or [])] if risk else [],
             "approval": {"status": ap.status, "priority": ap.priority, "decided_by": decider.email if decider else None} if ap else None}

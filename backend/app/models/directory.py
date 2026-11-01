@@ -108,6 +108,24 @@ class Identity(Base, UUIDPk, Timestamps):
     is_demo: Mapped[bool] = mapped_column(nullable=False, server_default="false")
 
 
+class IdentityVerification(Base, UUIDPk):
+    """Outcome of a joiner's Aadhaar check. Never holds the card image or the full number."""
+    __tablename__ = "identity_verifications"
+    identity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("identities.id", ondelete="CASCADE"), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="pending")   # pending | verified | review | failed
+    expected_dob: Mapped[date | None] = mapped_column()
+    expected_gender: Mapped[str | None] = mapped_column(String(1))
+    token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column()
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    masked_number: Mapped[str | None] = mapped_column(String(20))
+    number_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    checks: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
+    consent_at: Mapped[datetime | None] = mapped_column()
+    completed_at: Mapped[datetime | None] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+
 class IdentityEntitlement(Base, UUIDPk):
     __tablename__ = "identity_entitlements"
     __table_args__ = (

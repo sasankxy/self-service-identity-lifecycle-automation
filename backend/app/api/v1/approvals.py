@@ -13,6 +13,7 @@ from app.api.v1.common import request_deltas
 from app.core import csrf
 from app.core.deps import get_db, require_permission
 from app.core.errors import ApiError
+from app.models import IdentityVerification
 from app.models import (
     ApprovalRequest, Department, Identity, IdentityEntitlement, LifecycleRequest, LifecycleRequestEntitlement, RiskAssessment,
 )
@@ -41,10 +42,12 @@ async def list_approvals(status: Literal["pending", "approved", "rejected", "all
              else [func.coalesce(ApprovalRequest.decided_at, ApprovalRequest.requested_at).desc()])
     rows = (await db.execute(q.order_by(*order).limit(limit).offset(offset))).all()
     deltas = await request_deltas(db, [r[1].id for r in rows])
+    checks = dict((await db.execute(select(IdentityVerification.identity_id, IdentityVerification.status)
+                                    .where(IdentityVerification.identity_id.in_([r[2].id for r in rows])))).all())
     items = [{
         "id": a.id, "request_id": r.id, "ref": f"REQ-{r.ref_no}", "type": r.request_type, "status": a.status, "request_status": r.status,
         "priority": a.priority, "requested_at": a.requested_at, "decided_at": a.decided_at, "decision_comment": a.decision_comment,
-        "identity": {"id": i.id, "name": i.full_name, "email": i.email}, "department": dn, "from_department": fn, "to_department": tn,
+        "identity": {"id": i.id, "name": i.full_name, "email": i.email}, "aadhaar": checks.get(i.id, "not_started"), "department": dn, "from_department": fn, "to_department": tn,
         "effective_date": r.effective_date, "requester": r.requester_name, "justification": r.justification, "duration_hours": r.duration_hours,
         "added": deltas[r.id]["added"], "removed": deltas[r.id]["removed"],
         "risk": {"score": score, "level": level} if score is not None else None,
@@ -66,6 +69,11 @@ async def _decide(approval_id: uuid.UUID, decision: str, body: DecisionIn, reque
         raise ApiError(409, "already_decided", f"This request was already {ap.status}.")
     req = (await db.execute(select(LifecycleRequest).where(LifecycleRequest.id == ap.lifecycle_request_id).with_for_update())).scalar_one()
     ident = await db.get(Identity, req.identity_id)
+    if decision == "approved" and req.request_type == "joiner" and request.app.state.settings.aadhaar_required:
+        check = (await db.execute(select(IdentityVerification.status).where(IdentityVerification.identity_id == ident.id))).scalar_one_or_none()
+        if check != "verified" and not (check == "review" and body.comment.strip()):
+            raise ApiError(409, "aadhaar_required", "Aadhaar verification needs review: approve with a comment explaining what you checked."
+                           if check == "review" else "This joiner has not passed Aadhaar verification yet.")
     ap.status, ap.decided_by, ap.decided_at, ap.decision_comment = decision, uuid.UUID(actor.id), now, body.comment or None
     req.status = "approved" if decision == "approved" else "rejected"
 

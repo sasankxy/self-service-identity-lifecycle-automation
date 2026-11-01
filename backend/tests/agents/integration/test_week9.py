@@ -62,3 +62,51 @@ async def test_approver_copilot_brief(as_role, app):
     assert f["ref"].startswith("REQ-") and "changes" in f and "requester_flags" in f and r.json()["advice"] is None   # no LLM in CI
     emp = await as_role("employee", "brief-emp@corp.com")
     assert (await emp.get(f"/api/v1/agent/approvals/{aid}/brief")).status_code == 403
+
+
+# ─────────────────────────── Aadhaar verification (synthetic data only)
+async def _joiner(admin, email):
+    from datetime import date
+    lk = (await admin.get("/api/v1/meta/lookups")).json()
+    prof = next(p for p in lk["access_profiles"] if p["name"] == "Legal Counsel")
+    dept = next(d for d in lk["departments"] if d["name"] == "Legal")
+    r = await admin.post("/api/v1/identities", {"first_name": "Aditya", "last_name": "Rao", "email": email, "department_id": dept["id"],
+                                                "access_profile_id": prof["id"], "start_date": date.today().isoformat()})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+async def test_aadhaar_link_upload_and_approval_gate(as_role, app, monkeypatch):
+    from app.services import aadhaar as A
+    admin = await as_role("iam_admin")
+    j = await _joiner(admin, "aadhaar.joiner@corp.com")
+    link = await admin.post(f"/api/v1/identities/{j['id']}/aadhaar/link", {"date_of_birth": "1999-05-14"})
+    assert link.status_code == 201, link.text
+    H = {"X-Verification-Token": link.json()["url"].split("#")[1]}
+    http = admin.http
+    assert (await http.get("/api/v1/public/aadhaar", headers={"X-Verification-Token": "wrong"})).status_code == 404
+    assert (await http.get("/api/v1/public/aadhaar", headers=H)).json()["first_name"] == "Aditya"
+    files = {"file": ("c.png", b"not-an-image", "image/png")}
+    assert (await http.post("/api/v1/public/aadhaar", headers=H, files=files, data={"consent": "false"})).json()["error"]["code"] == "consent_required"
+    assert (await http.post("/api/v1/public/aadhaar", headers=H, files=files, data={"consent": "true"})).json()["error"]["code"] == "bad_image"
+
+    app.state.settings.aadhaar_required = True
+    try:
+        card = next(i for i in (await admin.get("/api/v1/approvals?limit=100")).json()["items"] if i["ref"] == j["request_ref"])
+        assert card["aadhaar"] == "pending"
+        assert (await admin.post(f"/api/v1/approvals/{card['id']}/approve", {})).json()["error"]["code"] == "aadhaar_required"
+        monkeypatch.setattr(A, "verify_image", lambda *a, **k: A.Outcome("verified", {"secure_qr": {"result": "pass", "detail": "ok"}}, "XXXX XXXX 9012", "h" * 64))
+        r = await http.post("/api/v1/public/aadhaar", headers=H, files=files, data={"consent": "true"})
+        assert r.json()["status"] == "verified" and "checks" not in r.json()
+        assert (await http.get("/api/v1/public/aadhaar", headers=H)).status_code == 404       # one-time link
+        s = (await admin.get(f"/api/v1/identities/{j['id']}/aadhaar")).json()
+        assert s["status"] == "verified" and s["masked_number"] == "XXXX XXXX 9012" and "number_hash" not in s
+        assert (await admin.post(f"/api/v1/approvals/{card['id']}/approve", {})).status_code == 200
+    finally:
+        app.state.settings.aadhaar_required = False
+
+
+async def test_aadhaar_number_is_masked_in_chat(as_role):
+    c = await as_role("iam_admin")
+    r = await chat(c, "Onboard Kai with aadhaar 2345 6789 0123", "sess-aadhaar-01")
+    assert "aadhaar_masked" in r["trace"][0]["flags"] and "2345 6789" not in texts(r)
